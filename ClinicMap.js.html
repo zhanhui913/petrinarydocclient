@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: utils/ClinicMap.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: utils/ClinicMap.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+
+	/**
+	 * Provides all the features of the clinic map.
+	 */
+	function ClinicMap() {
+		
+		// Load depedencies.
+		var ServerController = require('controllers/ServerController');
+		var NetworkMessager = require('utils/NetworkMessager');
+		var sc = new ServerController();
+	
+		var msger = new NetworkMessager();
+
+		// Class variables
+		var initialLocation = null;
+		var geoZoom = null;
+		var clinics = null;
+		var map = null;
+		// Used to clear the timeout on waiting for the map object to be initialized
+		var timeOutWaitingForMap = null;
+		
+		
+		ClinicMap.prototype.drawMap = function(mapId) {
+
+			msger.showSpinner();
+			
+			// Firefox requires functions to be defined first
+			
+			// Get clinic information from server beforehand to reduce wait time.
+			getClinicInformation(mapId);
+			
+			// Set the default location to Edmonton
+			function setupGeoLocation(initialLocation, geoZoom) {
+				
+				// Set default values if parameters not provided
+				initialLocation = (initialLocation == null ?
+						(new google.maps.LatLng(53.544389,-113.490927)) : initialLocation);
+				geoZoom = (geoZoom == null ? 11 : geoZoom);
+				
+			 	google.maps.event.addDomListener(window, 'load', 
+			 	  initializeMap(initialLocation, mapId, geoZoom));
+				
+				// Populate directions form with user's location
+				$('#directions-form input[name="your-location"]').val(initialLocation);
+			}
+			
+			if (navigator.geolocation) {
+				
+				// For cases where user is undecided or close geolocation box
+				// Default location is used
+				var geo_timeout = setTimeout(setupGeoLocation, 3000);
+				
+				// Occurs if user allows geolocaiton
+				function allowGeo(position) {
+					
+					// Clear the timeout
+					clearTimeout(geo_timeout);
+					
+					initialLocation = new google.maps.LatLng(position.coords.latitude, 
+					          position.coords.longitude);
+					geoZoom = 13;
+					
+					setupGeoLocation(initialLocation, geoZoom);
+				}
+				
+				// Occurs if user denies geolocation
+				function deniedGeo() {		
+					
+					// Clear the timeout
+					clearTimeout(geo_timeout);
+					setupGeoLocation();
+				}
+				
+				// Geolocation options
+				var geoPosOptions = {
+						enableHighAccuracy: true,
+						timeout: 3000
+				};
+				
+				// Get user's location and initialize the map
+				navigator.geolocation.getCurrentPosition(allowGeo, 
+						deniedGeo, geoPosOptions);
+			} 		
+			// If geolocation is not supported, set to Edmonton
+			else {			
+				setupGeoLocation();
+			}
+		};
+	
+		/** 
+		 * Initializes map and draws it to browser window given an initial
+		 * center position.
+		 */
+		var initializeMap = function(center, mapId, geoZoom) {
+			var marker;
+	
+			var mapProperties = {
+			  center: center,
+			  zoom: geoZoom,
+			  mapTypeId:google.maps.MapTypeId.ROADMAP
+			};
+			
+			map = new google.maps.Map(document.getElementById(mapId), mapProperties);
+			
+			marker = new google.maps.Marker( {
+			  	position: center,
+				animation:google.maps.Animation.BOUNCE,
+				icon: 'img/user_position_star.png',
+				title: 'Current location'
+					
+			});
+	
+			marker.setMap(map);
+			msger.hideSpinner();
+		};
+		
+		/**
+		 * Returns an array of js objects detaling clinic information necessary to
+		 * populate map.
+		 * @return {array} Array of clinic js objects
+		 */
+		var getClinicInformation = function(mapId) {
+			
+			var onSuccess = function(data, textStatus, request) {
+	
+				var parsedData = jQuery.parseJSON(data);
+				clinics = parsedData;
+				ClinicMap.prototype.addClinicMarkers();
+			};
+	
+			// Function to be called on failure.
+			var onFailure = function(req, status, error) {
+				
+				//TODO: indicate error loading all clinics
+				console.log('Retrieving clinic arrays failed!');
+				return;
+			};
+	
+			return sc.get('/clinics', null, onSuccess, onFailure);
+		};
+	
+		// Waiting for map initialization from drawmap()
+		function waitForMap() {
+			
+			if (map != null) {
+				
+				// Clear the timeout
+				clearTimeout(timeOutWaitingForMap);
+				ClinicMap.prototype.addClinicMarkers();
+				
+			}
+			else {
+				// Clear the timeout
+				clearTimeout(timeOutWaitingForMap);
+				// Set the timer to check if map is initialized
+				timeOutWaitingForMap = setTimeout(waitForMap, 1000);
+			}
+		}
+		/**
+		 * Given a clinic object and a map to which to add the marker, adds 
+		 */
+			ClinicMap.prototype.addClinicMarkers = function() {
+	
+			// Waiting for map initialization from drawmap()
+			if (map == null) {
+				waitForMap();
+			}
+			
+			// Add all clinic markers to the map
+			else {
+				
+				var marker = null;
+				var clinicPosition = null;
+				var infowindow = new google.maps.InfoWindow({
+					content: ""
+				});;
+				var infowindowContent = "";
+				var cName = '';
+				var cAddress = '';
+				var cCity = '';
+				var cPostal = '';
+				var cPhone = '';
+				var cEmail = '';
+				var cWeb = '';
+				
+				// Iterate over clinics, add markers
+				for (var i = 0; i &lt; clinics.length; i++) {
+					
+					// Make google's LatLng object
+					clinicPosition = new google.maps.LatLng(clinics[i]['latitude'], clinics[i]['longtitude']);
+
+					// Setup markers
+					marker = new google.maps.Marker( {
+					  	position: clinicPosition,
+						//map: map,
+					  	title: clinics[i]['clinicName']
+					});
+					
+					// Put markers on the map
+					marker.setMap(map);
+					
+					// Setup content for infowindow	
+					cName = '';
+					cAddress = '';
+					cCity = '';
+					cPostal = '';
+					cPhone = '';
+					cEmail = '';
+					cWeb = '';
+					
+					if (clinics[i]['clinicName'] != null)
+						cName = "&lt;div style='font-size: 1.5em'>&lt;strong>" + clinics[i]['clinicName'] + "&lt;/strong>&lt;/div>"; 
+					
+					if (clinics[i]['clinicAddress'] != null)
+						cAddress = "&lt;div>" + clinics[i]['clinicAddress'] + "&lt;/div>"; 
+				
+					if ((clinics[i]['clinicCity'] || clinics[i]['clinicProvince']) != null)
+						cCity = "&lt;div>" + clinics[i]['clinicCity'] + ", " + clinics[i]['clinicProvince'] + "&lt;/div>"; 
+					
+					if (clinics[i]['clinicPostalCode'] != null)
+						cPostal = "&lt;div>" + clinics[i]['clinicPostalCode'] + "&lt;/div>";  
+				
+					if (clinics[i]['phone'] != null)
+						cPhone = "&lt;div>" + clinics[i]['phone'] + "&lt;/div>";  
+				
+					if (clinics[i]['clinicEmail'] != null)
+						cEmail = "&lt;div>" + clinics[i]['clinicEmail'] + "&lt;/div>";  
+			
+					if (clinics[i]['website'] != null)
+						cWeb = "&lt;div>&lt;a href='http://" + clinics[i]['website'] + "' target='_blank'>" + clinics[i]['website'] + "&lt;/a>&lt;/div>"; 
+	
+					
+					
+					infowindowContent = cName + cAddress + cCity + cPostal + cPhone + cEmail + cWeb;
+					
+					// Add event listener for infowindows
+					callInfoWindow(marker, infowindow, infowindowContent, clinics[i]['clinicAddress'], clinics[i]['clinicCity'], clinics[i]['clinicProvince']);
+				}
+				
+				// Can be useful to re-adjust map in the future
+			    //map.setZoom(8);
+			    //map.setCenter(marker.getPosition());
+			}
+		};
+		
+		
+		/**
+		 * Add event listener for info window pop-ups
+		 */ 
+		function callInfoWindow(marker, infowindow, infowindowContent, clinicAddress, clinicCity, clinicProvince) {
+			
+			google.maps.event.addListener(marker, 'click', function() {
+				
+				// Open infowindow
+				infowindow.setContent(infowindowContent);
+				infowindow.open(map, marker);
+				
+				// Put clinic's address into the destination field for directions
+				$('#directions-form input[name="destination"]').val(clinicAddress + " " + clinicCity + " " + clinicProvince);
+				
+			});			
+		}
+
+	
+	}
+	
+	// Return the ClinicMap object... required by require.js
+	return ClinicMap;
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:45 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
