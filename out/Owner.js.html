@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: models/Owner.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: models/Owner.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   *
+   * Extends Backbone.RelationalModel (extension of Backbone.Model defined by
+   * backbone-relational)
+   * @exports models/Owner
+   */
+  var jquery            = require('libs/jquery'),
+      underscore        = require('libs/underscore'),
+      Backbone          = require('libs/backbone'),
+      _                 = require('libs/backbone-relational'),
+      Achievement       = require('models/Achievement'),
+      AchievementList   = require('models/AchievementList'),
+      Pet               = require('models/Pet'),
+      PetList           = require('models/PetList'),
+      ServerController  = require('controllers/ServerController');
+
+  Owner = Backbone.RelationalModel.extend({
+
+    /**
+     * Define the relations the Owner model shares with other models.
+     * pets: Owner has a HasMany relationship with the Pet class.
+     * achievements: Owner has a HasMany relationship with the Owner class.
+     */
+    relations: [
+      {
+        type: Backbone.HasMany,
+        key: 'pets',
+        relatedModel: Pet,
+        collectionType: PetList,
+        reverseRelation: {    // define what pet knows about its owner
+          key: 'owner',       // refer to owner appears as .owner attr in Pet
+          includeInJSON: 'id' // when pet is serialized to json, include owner id
+        }
+      },
+      {
+        type: Backbone.HasMany,
+        key: 'achievements',
+        relatedModel: Achievement,
+        colectionType: AchievementList,
+        reverseRelation: {
+          key: 'owner',
+          includeInJSON: 'id'
+        }
+      }
+    ],
+
+    initialize: function() {
+
+      /** Instance of ServerController class used in networking tasks. */
+      this.sc = new ServerController();
+
+      /** Database id associated with this Owner. */
+      this.id;
+
+      /** Owner username. */
+      this.username;
+
+      /** Owner email. */
+      this.email;
+
+      /** Owner profile picture src. */
+      this.avatar;
+
+      if (this.id != undefined) {
+        console.log('fetching...');
+        this.pets = new PetList({});
+
+        // TODO: once achievements are implemented on the server side, 
+        // actually fetch them.
+        mockAchievements = [
+          {
+            id: '1',
+            ownerId: this.id,
+            name: 'Mock Achievement 1',
+            description: 'Mock achievement description 1.',
+            stepsCompleted: 3,
+            stepsTotal: 5,
+            img: '/img/pet-profile-default.jpg',
+            points: '1'
+          },
+
+          {
+            id: '2',
+            ownerId: this.id,
+            name: 'Mock Achievement 2',
+            description: 'Mock achievement description 2.',
+            stepsCompleted: 1,
+            stepsTotal: 2,
+            img: '/img/pet-profile-default.jpg',
+            points: '2'        
+          },
+
+          {
+            id: '3',
+            ownerId: this.id,
+            name: 'Mock Achievement 3',
+            description: 'Mock achievement description 3.',
+            stepsCompleted: 1,
+            stepsTotal: 1,
+            img: '/img/pet-profile-default.jpg',
+            points: '3'        
+          }
+        ];
+
+        // Convert data from server into array of achievement models.
+        achievements = [];
+        mockAchievements.forEach(function(mockAchievement) {
+          achievements.push(Achievement.findOrCreate(mockAchievement));
+        });
+
+        /** Owner pets. */
+        this.pets;
+
+        // Set achievements attribute.
+        /** Owner achievements. */
+        this.achievements = new AchievementList();
+        this.achievements.add(achievements);
+      }
+    },
+    
+    
+    
+    // ============= Validation for creating new owner from clinic =============/
+    /** 
+     * Validates instance attribute values.  Triggers 'errorNewAccount' event 
+     * for listeners passing along object containing error messages.
+     */
+    validateNewAccount: function(attrs) {
+      var errors = {};
+      var hasError = false;
+
+      if (attrs == undefined) attrs = this.attributes;
+
+      if (attrs.newEmail != undefined &amp;&amp; !this.isEmail(attrs.newEmail)) {
+        hasError = true;
+        errors.email = attrs.newEmail == '' ? 
+          ('This field is required.') : 
+          ('You must enter a valid e-mail address.');
+      } else if (attrs.newEmail == undefined) {
+        hasError = true;
+      }
+
+      if (attrs.newUsername != undefined &amp;&amp; !this.isValidUsername(attrs.newUsername)) {
+        hasError = true;
+        errors.username = attrs.newUsername == '' ?
+          ('This field is required.') :
+          ('Usernames must be less than 16 characters long and consist of ' + 
+           ' only alphanumberic characters or "_"');
+      } else if (attrs.newUsername == undefined) {
+        hasError = true;
+      }
+
+      if (hasError == true) {
+        this.trigger('errorNewAccount', errors);
+        return false;
+      } else return true;
+    },
+    
+    /**
+     * Matches given string against a regexp to determine if it is an email.
+     * @param {string} str - The string which is tested for being an e-mail address.
+     * @return {Boolean} true if an e-mail address, false otherwise
+     */
+    isEmail: function(str) {
+      var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+      return regex.test(str);
+    },
+
+    /**
+     * Matches given string against regexp to determine if the is an string of 
+     * alphanumeric characters and of a valid length.
+     * @param {String} str - the string to be tested
+     * @return {Boolean} true if str is alphanumeric, false otherwise
+     */
+    isValidUsername: function(str) {
+      var MAX_USERNAME_LENGTH = 16;
+      if (str.length > MAX_USERNAME_LENGTH) return false;
+      var regex = /^[a-zA-Z0-9_]+$/;
+      return regex.test(str);
+    },
+    
+    /**
+     * Post attributes values to server to create Owner at server with attributes
+     * equal to instance attributes.
+     */
+    create: function() {
+
+    	// Errors triggered in validateNewAccount function.
+    	if (!this.validateNewAccount()) return;
+    	var postData = $.param(this.toJSON());
+    	var self = this;
+    	
+    	this.sc.post(
+			'/owner',
+			$.param(this.toJSON()),
+			onSuccess,
+			onFailure
+    	);
+    
+    	function onSuccess(data, status, req) {
+    		
+    		var parsedData;
+    		var message;
+    		
+    		try {
+    			parsedData = $.parseJSON(data);
+    		} catch (e) {
+    			console.log(e);
+    			console.log(data);
+    			//window.location = '/500';
+    			message = 'Server error, please try again';
+    			self.trigger('onCreateFailure', message);
+    			return;
+    		}
+    		    		
+    		if (parsedData['successfullyCreated'] == false) {
+ 
+    			message = 'This username or email already exists';
+    			self.trigger('onCreateFailure', message);
+    		}
+    		else {
+    			message = 'Account creation successful! \
+    				An email notification has been sent to: ' + 
+    					parsedData['email'];
+    			self.trigger('onCreateSuccess', message);
+    		}
+    	}
+    	
+        function onFailure(xhr, status, err) {
+      	  
+    		var message = 'Server error, please try again';
+			self.trigger('onCreateFailure', message);
+        }
+    },
+    
+    
+	// ======== Validation for getting an owner object (must not be '') ========/
+    /**
+     *	Make sure that the owner's id is not empty before getting the owner object.
+     */ 
+    validate: function(attrs) {
+        var errors = {};
+        var hasError = false;
+        
+        if (attrs == undefined) attrs = this.attributes;
+
+        if (attrs.id == '') {
+      	  hasError = true;
+      	  errors.message = ('Please enter an email address');
+        }
+
+        if (hasError == true) {
+          this.trigger('error', errors);
+          return false;
+        } else return true;
+    },
+    
+    /**
+     * Fetch attributes from database for Owner with database id equal to id
+     * of instance.  Instance attributes set on success.
+     */
+    fetch: function() {
+    	
+      // Errors triggered in validation function
+      if (!this.validate()) return; 
+      
+      var self = this;
+      this.sc.get(
+        '/owner/' + this.get('id'),
+        null,
+        onSuccess,
+        onFailure
+      );
+
+      function onSuccess(ret, status, req) {
+
+        try {
+          var data = $.parseJSON(ret);
+        } catch (e) {}
+          // Set the attributes the server is guaranteed to respond with.
+          self.set({
+        	  username: data['username'],
+        	  email:    data['email'],
+            avatar:   data['avatar']
+          });
+
+	        // Set the pet attributes the server is guaranteed to respond with
+	        var petList = new PetList();
+	      
+	        // TODO: Remove once refactored
+	        self.pets = new PetList();
+	        
+          if (data['pets'] != undefined | null) {
+        	  // Convert data from server into array of pets models.
+        	  pets = [];
+        	  data['pets'].forEach(function(pet) {
+        		  pets.push(Pet.findOrCreate(pet));
+        	  });
+        	  
+        	  petList.add(pets);
+        	  
+        	  // TODO: Remove once refactored
+        	  self.pets.add(pets);
+          } 
+          
+  	      self.set({
+  	      	pets: 		petList
+  	      });
+            
+  	      // Update the view
+          self.trigger('fetched');
+  	      self.trigger('changed', self);
+  	      self.trigger('onFetched');
+        // } 
+        // catch (e) {
+        //     console.log(e);
+        //     //console.log(req);
+        //     //window.location.href = '/500';
+        //   }
+      }
+
+      function onFailure(xhr, status, err) {
+    	  
+    	if(err == 'Not Found') {
+    		// No owner found by the specified email
+    		var errors = {};
+    		errors.message = ('No pet owners with this email');
+        	self.trigger('error', errors);
+        	return;
+    	}
+    	else {
+    		// In case of other errors
+    		var errors = {};
+    		errors.message = ('Error: Please try again');
+        	self.trigger('error', errors);
+        	return;
+    	}
+      }
+    }
+
+  });
+
+  return Owner;
+
+});
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

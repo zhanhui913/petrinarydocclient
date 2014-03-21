@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: models/Picture.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: models/Picture.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   * Model representing a picture associated with Pets and Owners.
+   * Extends Backbone.RelationalModel (extension of Backbone.Model defined by
+   * backbone-relational)
+   * @exports models/Picture
+   */
+  var jquery              = require('libs/jquery'),
+      underscore          = require('libs/underscore'),
+      Backbone            = require('libs/backbone'),
+      BackboneRelational  = require('libs/backbone-relational'),
+      ServerController    = require('controllers/ServerController');
+
+  Picture = Backbone.RelationalModel.extend({
+
+    initialize: function(options) {
+
+      /** Database id of the Picture instance. */
+      this.id;
+
+      /** Path to storage location of binary image data. */
+      this.src;
+
+      /** The number of times the Picture has been liked. */
+      this.likes;
+
+      /** The number of times the Picture has been viewed. */
+      this.views;
+
+      /** Instance of ServerController class used in networking tasks. */
+      this.sc = new ServerController();
+    },
+
+    /** Default instance attribute values */
+    defaults: {
+      id: 0,
+      src: '',
+      likes: 0,
+      views: 0
+    },
+// Networking tasks -----------------------------------------------------------/
+    
+    /** 
+     * Update server picture with database id equal to instance id with instance
+     * attribute values.
+     * Triggers 'updated' event on success.
+     */
+    put: function() {
+      var self = this;
+
+      var putData = 'picture=' + JSON.stringify(this.toJSON());
+      console.log(putData);
+      this.sc.put(
+        '/interests/' + this.id,
+        putData,
+        onSuccess,
+        onFailure
+      );
+
+      function onSuccess(res, status, xhr) {
+        console.log(res);
+        var data = JSON.parse(res);
+        if (data['src'] != undefined | null) { self.src = data['src']; }
+        //console.log(self.toJSON());
+        self.trigger('updated', self);
+      }
+
+      function onFailure(xhr, status, error) {
+        // Do nothing.
+      }
+    },
+
+    // If we are uploading file to server using AJAX, we have to make use of 
+    // native browser functions jQuery does not support.
+    /**
+     * Sent put/post request to server to update interest while sending along
+     * picture data as well.
+     * @param {file} imgFile - The binary data associated with the file to be uploaded.
+     * @param {string} method - The method (post or put) to contact the server with
+     * @param {string} event - The name of the event to be triggered on success.
+     */
+    post: function(imgFile) {
+
+      var xhr = new XMLHttpRequest();
+      var formData = new FormData();
+      var self = this;
+
+      var url = Backbone.history.fragment;
+      var petId = url.match(/\/pets\/((.)+)/)[1];
+      var ownerId = url.match(/owner\/((.)+)\/pets/)[1];
+      var picJSON = this.toJSON();
+      picJSON.pet = petId;
+      picJSON.owner = ownerId;
+
+
+      console.log(picJSON);
+
+      var resourceUri = '/pet/' + petId + '/picture';
+
+      console.log(resourceUri);
+
+      // Append information to FormData object.
+      formData.append('file', imgFile);
+      formData.append('picture', JSON.stringify(picJSON));
+
+      // Declare server resource to be contacted and method of contact.
+      xhr.open("POST", resourceUri, true);
+
+      // Callback on server response definition.
+      xhr.onload = function() {
+        console.log(xhr.response);
+        var data = JSON.parse(xhr.response);
+        self.set({id: data['id'], src: data['src']});
+        console.log('pic after upload...');
+        console.log(self.toJSON());
+        self.trigger('uploaded', self);
+      }
+
+      // Now that all information initialized, send request.
+      xhr.send(formData);
+    },
+
+    destroy: function() {
+      var self = this;
+      var url = Backbone.history.fragment;
+      var petId = url.match(/\/pets\/((.)+)/)[1];
+      this.sc.del(
+        '/pet/' + petId + '/picture/' + this.id,
+        null,
+        onSuccess,
+        onFailure
+      );
+
+      function onSuccess(rep, status, req) {
+        console.log('will trigger destroyed event...');
+        self.trigger('destroy', self);
+      }
+
+      function onFailure(xhr, status, err) {
+        //TODO
+      }
+    }
+  });
+
+  return Picture;
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

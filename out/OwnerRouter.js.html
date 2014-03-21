@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: routers/OwnerRouter.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: routers/OwnerRouter.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   *
+   * Manages Views associated with /owner route.
+   * @exports routes/OwnerRoute
+   */
+  var jquery                = require('libs/jquery'),
+      underscore            = require('libs/underscore'),
+      Backbone              = require('libs/backbone'),
+      ServerController      = require('controllers/ServerController'),
+      Owner                 = require('models/Owner'),
+      OwnerView             = require('views/owner/OwnerView'),
+      AchievementListView   = require('views/AchievementListView'),
+      PetListView           = require('views/owner/PetListView'),
+      PetProfileView        = require('views/pet/PetProfileView'),
+      achievementHeaderTpl  = require('text!/templates/achievement-header-tpl.html')
+      AddPetModalView       = require('views/owner/AddPetModalView'),
+      OwnerPasswordResetView = require('views/owner/OwnerPasswordResetView');
+
+  OwnerRouter = Backbone.Router.extend({
+
+    initialize: function() {
+      $('#password-reset-link').on('click', this.redirectToPwReset);
+    },
+
+    /** 
+     * If the router owner attribute is undefined or the id of the owner has
+     * changed in the route, we repopulate the view.
+     */
+    setUpView: function(id, petId) {
+      if ((this.owner == undefined | null)) {
+        this.owner = Owner.findOrCreate({id: id});
+        this.petListView = new PetListView({owner: this.owner});
+        $('#pet-list').html(this.petListView.render().el);
+        this.owner.fetch();
+      } 
+      if (petId != null | undefined) {
+        this.petListView.setActivePet(petId);
+      } else {
+        this.petListView.removeAllActive();
+      }
+    },
+
+    // Define the routes that the router responds to.
+    routes: {
+      'owner/:id':              'showOwner', // By default show achievements view.
+      'owner/:id/pets':         'redirectToHome', // No index view for pets.
+      'owner/:id/pets/:petId':  'showPet',
+      'owner/:id/resetpw':      'showPasswordReset',
+      '*actions':               'test'
+    },
+
+    test: function(actions) {
+      console.log(actions);
+    },
+
+    /** Render OwnerView. */
+    showOwner: function(id) {
+      this.setUpView(id);
+
+      if (this.ownerView == undefined | null) {
+        this.ownerView = new OwnerView({model: this.owner});
+      } 
+
+      $('#password-reset-link').on('click', this.redirectToPwReset);
+
+      this.ownerView.render();
+
+    },
+
+    /** Redirect to /owner/id. */
+    redirectToHome: function(id) {
+      this.navigate('owner/' + id, true);
+    },
+
+    /** Redirect to /owner/id/resetpw. */
+    redirectToPwReset: function(e) {
+      e.preventDefault();
+      router.navigate('owner/' + router.owner.get('id') + '/resetpw', true)
+    },
+
+    /** Render PetProfileView. */
+    showPet: function(id, petId) {
+
+      console.log('show pet firing');
+
+      this.setUpView(id, petId);
+
+      if (this.petView == undefined | null) {
+        this.petView = new PetProfileView({owner: this.owner, petId: petId});
+      } else {
+        this.petView.changeModel(petId);
+      }
+      this.petView.render();    
+    },
+
+    /** Render PasswordResetView. */
+    showPasswordReset: function(id) {
+      if (this.owner == undefined | null) {
+
+        // Do not allow direct navigation to password reset screen.
+        this.redirectToHome(id);
+        return; // Shouldn't be reached.
+      }
+
+      if (this.passwordResetView == undefined | null) {
+        this.passwordResetView = new OwnerPasswordResetView({owner: this.owner});
+        $('body').append(this.passwordResetView.render().el);
+      }
+      this.passwordResetView.show();
+    }
+
+    // showAddPet: function(id) {
+
+    //   this.setUpView(id);
+
+    //   if (this.addPetView == undefined | null) {
+    //     var pet = Pet.findOrCreate({id: -1, owner: this.owner});
+    //     this.addPetView = new AddPetModalView(
+    //       {
+    //         model: pet
+    //       }
+    //     );
+    //   }
+    //   this.addPetView.render()
+    //   $('body').append(this.addPetView.el);
+    //   this.addPetView.show();
+    // }
+  });
+
+  return OwnerRouter;
+
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/pet/AddInterestView.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/pet/AddInterestView.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /** 
+   * View used in pet profile page for displaying the interest list header
+   * and implementing functionality regarding to the addition of an interest to
+   * a pet's profile.
+   * Extends Backbone.View
+   * @exports views/pet/AddInterestView
+   */
+  var jquery            = require('libs/jquery'),
+    underscore          = require('libs/underscore'),
+    Backbone            = require('libs/backbone'),
+    InterestRecord      = require('models/InterestRecord'),
+    InterestList        = require('models/InterestList'),
+    jQueryUI            = require('libs/jquery-ui'),
+    addInterestTpl      = require('text!/templates/pet/interests-header-tpl.html');
+
+  AddInterestView = Backbone.View.extend({
+
+    initialize: function(options) {
+      /**
+       * Reference to containing parent view -- an instance of PetSocialView.
+       */
+      this.parent = options.parent;
+      /** The model this view listens to -- a new instance of InterestRecord */
+      this.model = InterestRecord.findOrCreate({id: -1});
+
+      /** List of all interests currently at server. */
+      this.interestsList = new InterestList();
+
+      /** 
+       * Array of descriptions of interests at server -- used to aid in 
+       * autocompletion.
+       */
+      this.values = [];
+
+      this.delegateListeners();
+      this.delegateEvents();
+      this.interestsList.fetch();
+    },
+
+    /** 
+     * Class name given to &lt;div> element this view will render its template 
+     * into.
+     */
+    className: 'interest-header-el',
+
+    /** 
+     * Set instance attributes based on object passed.
+     * @param {Object} attributes - JSON objects of instance attributes to be set.
+     */
+    set: function(attributes) {
+      this.pet = attributes.pet;
+      this.model.set({pet: attributes.pet});
+    },
+
+    /** Render View template into div element. */
+    render: function() {
+      var tpl = _.template(addInterestTpl);
+      var self = this;
+      $(this.el).html(tpl);
+      if (this.values != null | undefined) {
+        $(this.el).find('#add-interest').autocomplete({
+          source: self.values
+        });       
+      }
+      this.delegateEvents();
+      return this;
+    },
+
+    /** Defines event listeners and callbacks. */
+    events: {
+      'click #add-interest-btn': 'onAddInterest',
+      'keyup #add-interest': 'onKeyup'
+    },
+
+    /** Bind callbacks for object events that the view listens to. */
+    delegateListeners: function() {
+      this.listenTo(this.interestsList, 'interestsFetched', this.onInterestsFetched);
+      this.listenTo(this.model, 'uploaded', this.onUpload);
+    },
+
+    /**
+     * Determines if the given string is a description in the interest list,
+     * returns the interest object whose description matches the string, 
+     * @param {string} str - The string value currently in the input field.
+     */
+    getInterestFromValue: function(str) {
+      var ret = null;
+      this.interestsList.models.forEach(function(interest) {
+        if (interest.get('description') == str) {
+          ret = interest;
+        }
+      });
+      return ret;
+    },
+// Event callbacks ------------------------------------------------------------/
+
+    /**
+     * Callback for keyup event -- determines if 'enter' key was pressed and 
+     * fires onAddInterest if this is the case.
+     */
+    onKeyup: function(e) {
+      var keyCode = e.keyCode | e.which;
+      if (keyCode == '13') {
+        this.onAddInterest();
+      }
+    },
+
+    /**
+     * Callback fired on update of list of interests retrieved from server.
+     * Populates this.values array.
+     */
+    onInterestsFetched: function(e) {
+      this.values = [];
+      var self = this;
+      this.interestsList.models.forEach(function(interest) {
+        self.values.push(interest.get('description'));
+      });
+
+      $(this.el).find('#add-interest').autocomplete({
+        source: self.values
+      });
+    },
+
+    /**
+     * Callback fired on click of add interest button.
+     * Calls the associated InterestRecord's post() method to save interest at 
+     * server after validation of value in input.
+     */
+    onAddInterest: function(e) {
+      var val = $(this.el).find('#add-interest').val();
+      
+      // Need to confirm that value in input box is in array of allowed interests.
+      var interest = this.getInterestFromValue(val);
+
+      if (interest == null) return;
+
+      this.model.set({interest: interest});
+      this.model.post();
+    },
+
+    /**
+     * Callback fired on trigger of 'uploaded' event by InterestRecord instance
+     * this model is listening to.
+     */
+    onUpload: function(interestRecord) {
+      this.parent.trigger('interestRecordUpload', interestRecord);
+      this.model = InterestRecord.findOrCreate({id: -1});
+      this.model.set({pet: interestRecord.get('pet')});
+      this.render();
+      this.delegateEvents();
+      this.delegateListeners();
+    }
+
+    });
+
+  return AddInterestView;
+
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/pet/EditPetView.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/pet/EditPetView.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   * Render modal window used to edit basic pet information.
+   * Extends Backbone.View
+   * @exports views/pet/EditPetView
+   */
+  var jquery          = require('libs/jquery'),
+    underscore        = require('libs/underscore'),
+    Backbone          = require('libs/backbone'),
+    editPetModalTpl   = require('text!/templates/pet/edit-pet-modal-tpl.html');
+
+  EditPetView = Backbone.View.extend({
+
+    initialize: function(options) {
+
+      this.model.on('error', this.onError, this);
+      this.owner = options.owner;
+
+      /** Collection of instances of Clinic used in autocompletion of form. */
+      this.clinics = new ClinicList();
+      this.clinics.on('fetched', this.onClinicsFetched, this);
+      this.clinics.fetch();
+
+      /** Array of clinic name used to populate autocomplete widget. */
+      this.values = [];
+
+      this.delegateListeners();
+    },
+
+    className: 'edit-pet-modal-el',
+
+    render: function() {
+
+      var tpl = _.template(editPetModalTpl, {pet: this.model.toJSON()});
+
+      $(this.el).html(tpl);
+      if (this.values != null | undefined) {
+        $(this.el).find('#home-clinic').autocomplete({
+          source: self.values,
+          minLength: 3
+        });       
+        $('html').find('.ui-autocomplete').css('z-index', 999999);
+      }
+      this.delegateEvents();
+      return this;
+    },
+
+    delegateListeners: function() {
+
+      this.model.on('error', this.onError, this);
+      this.model.on('updated', this.onUpdate, this);
+
+    },
+
+    events: {
+      'click #confirm-edit-pet-btn':    'editPet',
+      'click .close':                   'hide'
+    },
+
+    getFormValues: function() {
+      return {
+        name:         $(this.el).find('#name').val(),
+        breed:        $(this.el).find('#breed').val(),
+        homeClinic:   $(this.el).find('#home-clinic').val()
+      };
+    },
+
+    show: function() {
+      $(this.el).find('#edit-pet-window').modal('show');
+    },
+
+    hide: function() {
+      $(this.el).find('#edit-pet-window').modal('hide');
+    },
+
+    /** Remove feedback from input elements. */
+    removeFeedback: function(formGroup) {
+      $(formGroup)
+        .removeClass('has-error')
+        .removeClass('has-success')
+        .find('.feedback').html('');
+    },
+
+    /** 
+     * Search collection of clinics for one with name equal to given value.
+     * @param {string} value - The string value to be matche against clinic
+     * names.
+     * @return {Clinic} The first clinic object with name matching given value,
+     * null if no such clinic exists in the collection.
+     */
+    getClinicFromValues: function(value) {
+      var ret = null;
+      this.clinics.models.forEach(function(clinic) {
+        if (clinic.get('name') == value) {
+          ret = clinic;
+        }
+      });
+
+      return ret;
+    },
+
+    onError: function(err) {
+      if (err.name != null || undefined) {
+        this.addWarning(
+          $(this.el).find('#name').closest('.form-group'), 
+          err.name
+        );
+      }
+    },
+
+    addWarning: function(formGroup, msg) {
+      this.removeFeedback(formGroup);
+      $(formGroup)
+        .addClass('has-error')
+        .find('.feedback').html(msg);
+    },
+
+    onClinicsFetched: function() {
+      this.values = [];
+      var self = this;
+      this.clinics.models.forEach(function(clinic) {
+        self.values.push(clinic.get('name'));
+      });
+
+      if (this.values != null || undefined) {
+        $(this.el).find('#home-clinic').autocomplete({
+          source: self.values,
+          minLength: 3
+        });       
+        $('html').find('.ui-autocomplete').css('z-index', 999999);
+      }    
+    },
+
+    editPet: function() {
+      var formValues = this.getFormValues();
+      var self = this;
+      var clinic = this.getClinicFromValues(formValues.homeClinic);
+
+      // Remove feedback from input elements.
+      $(this.el).find('.form-group').each(function(index) {
+        self.removeFeedback($(this));
+      });
+
+      // Ensure that the user has entered the name of a clinic we recognize
+      // or none at all.
+      if ((clinic == null | undefined) &amp;&amp; (formValues.homeClinic != "")) {
+        this.addWarning(
+          $(this.el).find('#home-clinic').closest('.form-group'), 
+          "We do not recognize that clinic.  Please select one we have on " + 
+          "record or leave the field blank."
+        );
+        return;
+      }
+
+      if (clinic == undefined || null) {
+        formValues.homeClinic = null;
+      } else {
+        formValues.homeClinic = clinic.get('id');
+        this.model.set({homeClinicJSON: clinic.toJSON()});
+      }
+
+      this.model.set(formValues);
+
+
+      console.log(this.model.toJSON());
+      this.model.put(this.owner);
+
+    },
+
+    onUpdate: function() {
+      this.hide();
+    }
+
+  });
+  return EditPetView;
+});
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

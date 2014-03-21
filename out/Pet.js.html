@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: models/Pet.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: models/Pet.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   * A model representing a pet.  Responsible for validation of 
+   * attributes and communicating with persistent Pet data stored at 
+   * server side.
+   * Extends Backbone.RelationalModel (extension of Backbone.Model defined by
+   * backbone-relational)
+   * @exports models/Pet
+   */
+  var jquery              = require('libs/jquery'),
+      underscore          = require('libs/underscore'),
+      Backbone            = require('libs/backbone'),
+      BackboneRelational  = require('libs/backbone-relational'),
+      Picture             = require('models/Picture'),
+      PictureList         = require('models/PictureList'),
+      InterestRecord      = require('models/InterestRecord'),
+      InterestRecordList  = require('models/InterestRecordList'),
+      ServerController    = require('controllers/ServerController');
+
+  Pet = Backbone.RelationalModel.extend({
+    /** 
+     * Defines the relations the Pet model shares with other models.
+     * pictures: Pet has a HasMany relationship with Picture class.
+     * interests: Pet has a HasMany relationship with Interest class.
+     */
+    relations: [
+      {
+        type: Backbone.HasMany,
+        key: 'pictures',
+        relatedModel: Picture,
+        collectionType: PictureList,
+        reverseRelation: {
+          key: 'pet',
+          includeInJSON: ['id', 'owner']
+        }
+      },
+      {
+        type: Backbone.HasMany,
+        key: 'interests',
+        relatedModel: InterestRecord,
+        collectionType: InterestRecordList,
+        reverseRelation: {
+          key: 'pet',
+          includeInJSON: 'id'
+        }
+      }
+    ], 
+
+    initialize: function(pet) {
+
+      console.log(pet);
+
+      if (pet == undefined | null) return;
+      // Set up attributes based on parameters passed in by pet object.
+      /** Database id of the Pet instance (obtained from server). */
+      this.id = pet.id;
+
+      /** Database of the Owner associated with this Pet. */
+      this.ownerId = pet.ownerId;
+
+      /** Pet name. */
+      this.name = pet.name;
+
+      /** Pet species */
+      this.species = pet.species;
+
+      /** Pet breed. */
+      this.breed = pet.breed;
+
+      /** Pet age. */
+      this.age = pet.age;
+
+      /** Pet date of birth. */
+      this.dob = pet.dob;
+
+      /** 0 or 1 dependendant on whether pet has been neutered. */
+      this.isNeutered = pet.isNeutered;
+
+      /** 0 or 1 dependendant on whether the pet account is active. */
+      this.isActive = pet.isActive;
+
+      /** The id of the clinic which this pet has declared to be its 
+       * "home clinic". */
+      this.set({homeClinicJSON: pet.homeClinic});
+
+      /** Records of the achievements this pet is elligble for and has accomplished. */
+      this.set({achievements: pet.achievements});
+
+      /** The number of points that pet has earned. */
+      this.set({points: pet.points});
+
+      /** Collection of Picture objects associated with this Pet instance. */
+      this.pictures;
+
+      /** Colleciton of Interest object associated with this Pet instance. */
+      this.interests;
+
+      // Convert JSON pictures into collection of Picture models.
+      if (pet.pictures != undefined | null) {
+        var pics = [];
+        pet.pictures.forEach(function(picture){
+          pics.push(Picture.findOrCreate(picture));
+        });
+        this.pictures = new PictureList();
+        this.pictures.add(pics);
+      } else {
+        this.pictures = new PictureList();
+      }
+
+      // Convert JSON interest records into collecton of InterestRecord models.
+      if (pet.interests != undefined | null) {
+        var interestRecords = [];
+        pet.interests.forEach(function(interestRecord) {
+          var irModel = 
+            InterestRecord.findOrCreate(
+              {
+                id: interestRecord.petId + '_' + interestRecord.interest.id
+              }
+            );
+
+          irModel.set(interestRecord);
+          interestRecords.push(irModel);
+        });
+
+        this.interests = new InterestRecordList();
+        this.interests.add(interestRecords);
+      } else {
+        this.interests = new InterestRecordList();
+      }
+
+      console.log(this);
+
+      /**
+       * Instance of ServerController used in networking tasks.
+       */
+      this.sc = new ServerController();
+
+    },
+
+    validate: function(attrs) {
+
+      err = {};
+      isValid = true;
+
+      if (attrs === undefined || attrs.name == null) attrs = this.attributes;
+
+      if (attrs.name == "" || attrs.name == undefined || attrs.name == null) {
+        err.name = "Pet must have a name.";
+        isValid = false;
+      }
+
+      if (!this.isValidDate(attrs.dob)) {
+        err.dob = "Invalid date of birth.";
+        isValid = false;
+      }
+      
+      if (attrs.sex == undefined || attrs.sex == null) {
+        err.sex = "Pet must have a sex.";
+        isValid = false;
+      }
+      
+      if (attrs.species == undefined || attrs.species == "" || attrs.species == null) {
+        err.species = "Pet must have a species.";
+        isValid = false;
+      }
+
+      if (!isValid) {
+        this.trigger('error', err);
+        return false;
+      }
+      return true;
+
+    },
+
+    isValidDate: function(s) {
+
+      if (s == undefined || s == null || s == "") return false;
+
+      // TODO: refactor the code below; clean up logical flow
+      var dobRegexp = /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/;
+      var isDate = dobRegexp.test(s);
+      // Test to see if string is in correct format.
+      if (isDate == false) return false;
+      // Test if MM and DD are feasible.
+      var pieces = s.split('-');
+      var y = parseInt(pieces[0]);
+      var mm = parseInt(pieces[1]);
+      var dd = parseInt(pieces[2]);
+
+      if ((mm > 12) || (mm == 0)) return false;
+
+      switch (mm) {
+        case 1:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 2:
+          if (0 &lt; dd &lt; 29) break; return false;
+        case 3:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 4:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 5:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 6:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 7:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 8:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 9:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 10:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 11:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 12:
+          if (0 &lt; dd &lt; 32) break; return false;
+        default:
+          // Should not be reached.
+          return false;
+      }
+
+      // Make sure the date is not too far in the past.
+      if (y &lt; 1990) return false;
+
+      // Make sure date is not in the future.
+      var today = new Date();
+      var dob = new Date();
+      dob.setFullYear(y, mm-1, dd);
+
+      if (today &lt; dob) return false;
+
+      return true;
+    },
+
+// Networking methods. --------------------------------------------------------/
+    
+    /** Fetch pet from server. @deprecated */
+    fetch: function() {
+      if (this.id == undefined | null) return;  /// TODO: trigger error?
+    },
+
+    /** 
+     * Called to create a new instance of pet at the server.
+     * On success, Pet instance's id is set to be the id returned by the server.
+     */
+    post: function() {
+
+      console.log('posting pet...');
+      console.log(this.toJSON());
+
+      // Don't try to post with invalid parameters.
+      if (this.validate() == false) return;
+
+      // Don't try to post a pet that already has an id!
+      if (this.id != -2 | undefined | null) return;
+
+      var json = this.toJSON();
+      var postData = 'pet=' + JSON.stringify(json);
+      var ownerId = json.owner;
+      var self = this;
+      console.log('/owner/' + ownerId + '/pet');
+
+      this.sc.post(
+        '/owner/' + ownerId + '/pet',
+        postData,
+        onSuccess,
+        onFailure
+      ); 
+
+      function onSuccess(rep, status, req) {
+        console.log(rep);
+        var data;
+        try {
+          data = JSON.parse(rep);
+        } catch (e) {
+          console.log(rep);
+          // trigger error or redirect to 500 or something
+        }
+        self.id = data.id;
+        self.set({id: data.id});
+        self.trigger('uploaded', self);
+      }
+
+      function onFailure(xhr, status, err) {
+        console.log(xhr);
+        // thrigger error event?
+      }
+
+    },
+
+    put: function(ownerRef) {
+      console.log('updating pet...');
+      console.log(this.toJSON());
+
+      // Don't try to post with invalid parameters.
+      if (this.validate() == false) return;
+
+      var json = this.toJSON();
+      var postData = 'pet=' + JSON.stringify(json);
+      console.log(json);
+      var ownerId = ownerRef.get('id');
+      var self = this;
+      console.log('/owner/' + ownerId + '/pet/' + this.get('id'));
+
+      this.sc.put(
+        '/owner/' + ownerId + '/pets/' + this.get('id'),
+        postData,
+        onSuccess,
+        onFailure
+      ); 
+
+      function onSuccess(rep, status, req) {
+        console.log(rep);
+        var data;
+        try {
+          data = JSON.parse(rep);
+        } catch (e) {
+          console.log(e);
+          // window.location.href = '/500';
+        }
+        self.trigger('updated');
+      }
+
+      function onFailure(xhr, status, err) {
+
+      }
+    },
+
+    destroy: function(ownerId) {
+      var self = this;
+      this.sc.del(
+        '/owner/' + ownerId + '/pets/' + this.get('id'),
+        null,
+        onSuccess,
+        onFailure
+      );
+      function onSuccess(rep, status, req) {
+        console.log(rep);
+        var data = JSON.parse(rep);
+        if (data.wasSuccessful == true) self.trigger('destroyed');
+      }
+      function onFailure(xhr, status, err) {
+
+      }
+    }
+
+  });
+
+  return Pet;
+
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListElementView.html">views/owner/PetListElementView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPet">addPet</a></li><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#clinics">clinics</a></li><li><a href="global.html#convertDob">convertDob</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#dobChanged">dobChanged</a></li><li><a href="global.html#getFormValues">getFormValues</a></li><li><a href="global.html#hClinicChanged">hClinicChanged</a></li><li><a href="global.html#hide">hide</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#nameChanged">nameChanged</a></li><li><a href="global.html#onError">onError</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#render">render</a></li><li><a href="global.html#sexChanged">sexChanged</a></li><li><a href="global.html#showPetClicked">showPetClicked</a></li><li><a href="global.html#showPetProfile">showPetProfile</a></li><li><a href="global.html#speciesChanged">speciesChanged</a></li><li><a href="global.html#values">values</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 21 2014 11:47:42 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
