@@ -98,6 +98,62 @@ Extends Backbone.View</div>
         <dl>
             
 <dt>
+    <h4 class="name" id="categories"><span class="type-signature"></span>categories<span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+    
+    <div class="description">
+        Collection of  categories to which interests can be associated.
+    </div>
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line27">line 27</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
     <h4 class="name" id="collection"><span class="type-signature"></span>collection<span class="type-signature"></span></h4>
 
     
@@ -210,6 +266,63 @@ Extends Backbone.View</div>
         
             
 <dt>
+    <h4 class="name" id="cache"><span class="type-signature">&lt;inner> </span>cache<span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+    
+    <div class="description">
+        Build and cache regexp used in filtering. Cache hash is the regular
+expression built from the passed pattern.
+    </div>
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line221">line 221</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
     <h4 class="name" id="el"><span class="type-signature">&lt;inner> </span>el<span class="type-signature"></span></h4>
 
     
@@ -302,7 +415,7 @@ Extends Backbone.View</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line61">line 61</a>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line94">line 94</a>
     </li></ul></dd>
     
 
@@ -326,6 +439,314 @@ Extends Backbone.View</div>
         <h3 class="subsection-title">Methods</h3>
 
         <dl>
+            
+<dt>
+    <h4 class="name" id="filterByCategory"><span class="type-signature">&lt;inner> </span>filterByCategory<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Filter interests displayed in the clinic list based on the value of
+the category selected in the interest list header.
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line160">line 160</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="filterByDescription"><span class="type-signature">&lt;inner> </span>filterByDescription<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Filter interests displayed in the interest list based on the value of
+the search input box.
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line191">line 191</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="match"><span class="type-signature">&lt;inner> </span>match<span class="signature">(str, pattern)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Perform test for fuzzy match of str against pattern.
+    </div>
+    
+
+    
+
+    
+
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>str</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The string to be matched.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">The pattern against which to match str.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line233">line 233</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if str is fuzzy match of pattern, false otherwise.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+        
+
+    
+</dd>
+
+        
             
 <dt>
     <h4 class="name" id="onInterestClick"><span class="type-signature">&lt;inner> </span>onInterestClick<span class="signature">()</span><span class="type-signature"></span></h4>
@@ -371,7 +792,7 @@ parent view for rendering into PreviewInterest area.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line70">line 70</a>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line148">line 148</a>
     </li></ul></dd>
     
 
@@ -401,7 +822,7 @@ parent view for rendering into PreviewInterest area.
         
             
 <dt>
-    <h4 class="name" id="onListChange"><span class="type-signature">&lt;inner> </span>onListChange<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="onListFetch"><span class="type-signature">&lt;inner> </span>onListFetch<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -442,7 +863,7 @@ parent view for rendering into PreviewInterest area.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line82">line 82</a>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line239">line 239</a>
     </li></ul></dd>
     
 
@@ -480,10 +901,7 @@ parent view for rendering into PreviewInterest area.
 
     
     <div class="description">
-        Render View template into this.el.  For each Interest in the collection
-that this instance of InterestListView listens to, we append the result 
-of rendering an instance of 
-InterestListElementView.
+        Render View template into this.el.
     </div>
     
 
@@ -516,7 +934,216 @@ InterestListElementView.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line43">line 43</a>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line39">line 39</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="renderCategories"><span class="type-signature">&lt;inner> </span>renderCategories<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Update category values in select element of template.
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line75">line 75</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="renderInterests"><span class="type-signature">&lt;inner> </span>renderInterests<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Re-render list of interests.
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line57">line 57</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="sortViews"><span class="type-signature">&lt;inner> </span>sortViews<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="InterestListView.js.html">views/admin/InterestListView.js</a>, <a href="InterestListView.js.html#line111">line 111</a>
     </li></ul></dd>
     
 
@@ -559,13 +1186,13 @@ InterestListElementView.
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:46 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:43 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>

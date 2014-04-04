@@ -34,15 +34,18 @@
    * backbone-relational)
    * @exports models/Pet
    */
-  var jquery              = require('libs/jquery'),
-      underscore          = require('libs/underscore'),
-      Backbone            = require('libs/backbone'),
-      BackboneRelational  = require('libs/backbone-relational'),
-      Picture             = require('models/Picture'),
-      PictureList         = require('models/PictureList'),
-      InterestRecord      = require('models/Interest'),
-      InterestRecordList  = require('models/InterestList'),
-      ServerController    = require('controllers/ServerController');
+  var jquery              	= require('libs/jquery'),
+      underscore          	= require('libs/underscore'),
+      Backbone            	= require('libs/backbone'),
+      BackboneRelational  	= require('libs/backbone-relational'),
+      Species            	= require('models/Species'),
+      Picture            	= require('models/Picture'),
+      PictureList        	= require('models/PictureList'),
+      InterestRecord     	= require('models/InterestRecord'),
+      InterestRecordList  	= require('models/InterestRecordList'),
+      AchievementRecord     = require('models/AchievementRecord'),
+      AchievementRecordList = require('models/AchievementRecordList'),
+      ServerController    	= require('controllers/ServerController');
 
   Pet = Backbone.RelationalModel.extend({
     /** 
@@ -70,13 +73,31 @@
           key: 'pet',
           includeInJSON: 'id'
         }
+      },
+      {
+          type: Backbone.HasMany,
+          key: 'achievementRecords',
+          relatedModel: AchievementRecord,
+          collectionType: AchievementRecordList,
+          reverseRelation: {
+            key: 'pet',
+            includeInJSON: 'id'
+          }
+        },
+      {
+        type: Backbone.HasOne,
+        key: 'species',
+        relatedModel: Species
       }
     ], 
 
     initialize: function(pet) {
 
-      if (pet == undefined | null) return;
+      console.log(pet);
 
+      var self = this;
+
+      if (pet == undefined | null) return;
       // Set up attributes based on parameters passed in by pet object.
       /** Database id of the Pet instance (obtained from server). */
       this.id = pet.id;
@@ -99,16 +120,53 @@
       /** Pet date of birth. */
       this.dob = pet.dob;
 
+      /** 0 or 1 dependendant on whether pet has been neutered. */
+      this.isNeutered = pet.isNeutered;
+
+      /** 0 or 1 dependendant on whether the pet account is active. */
+      this.isActive = pet.isActive;
+
+      /** The id of the clinic which this pet has declared to be its 
+       * "home clinic". */
+      this.homeClinic;
+      this.set({homeClinicJSON: pet.homeClinic});
+      this.set({
+        homeClinic: 
+          (pet.homeClinic == undefined || pet.homeClinic == null)
+            ? null : pet.homeClinic.clinicId
+        }
+      );
+
+      /** Records of the achievements this pet is elligble for and has accomplished. */
+      this.achievements;
+
+      // Filter out achievement records where both next and current are null.
+      var achievements = _.filter(pet.achievements, function(a) {
+        if ((a.currentAchievement == null &amp;&amp; a.nextAchievement == null) ||
+            (a.currentAchievement == null &amp;&amp; a.nextAchievement.id == null)) {
+              return false;
+            }
+            return true;
+      });
+      this.set({achievements: achievements});
+
+      /** The number of points that pet has earned. */
+      this.set({points: pet.points});
+
       /** Collection of Picture objects associated with this Pet instance. */
       this.pictures;
 
-      /** Colleciton of Interest object associated with this Pet instance. */
+      /** Collection of Interest object associated with this Pet instance. */
       this.interests;
+      
+      /** Collection of AchievementRecord object associated with this Pet instance. */
+      this.achievementRecords;
 
       // Convert JSON pictures into collection of Picture models.
       if (pet.pictures != undefined | null) {
         var pics = [];
         pet.pictures.forEach(function(picture){
+          picture.petId = self.id;
           pics.push(Picture.findOrCreate(picture));
         });
         this.pictures = new PictureList();
@@ -121,7 +179,15 @@
       if (pet.interests != undefined | null) {
         var interestRecords = [];
         pet.interests.forEach(function(interestRecord) {
-          interestRecords.push(InterestRecord.findOrCreate(interestRecord));
+          var irModel = 
+            InterestRecord.findOrCreate(
+              {
+                id: interestRecord.petId + '_' + interestRecord.interest.id
+              }
+            );
+
+          irModel.set(interestRecord);
+          interestRecords.push(irModel);
         });
 
         this.interests = new InterestRecordList();
@@ -129,8 +195,40 @@
       } else {
         this.interests = new InterestRecordList();
       }
+      
+      
+      // Convert JSON achievement records into collecton of AchievementRecord models.
+      if (pet.achievements != undefined | null) {
+          var achievementRecords = [];
+          var self = this;
+          
+          pet.achievements.forEach(function(achievementRecord) {
+        	  
+              // Do not show completed achievements
+              if (achievementRecord.nextAchievement != null) {
+	              var arModel = 
+	            	  AchievementRecord.findOrCreate(
+	            		{
+	            		  id: self.id + "_" 
+	            		  	+ "_" + achievementRecord.nextAchievement.set.id,
+	            		  	//+ achievementRecord.nextAchievement.id,
+	            		  	//+ "_" + achievementRecord.currentAchievement.id
+	            		  	//+ "_" + achievementRecord.currentAchievement.set.id,
+	            		  nextId: achievementRecord.nextAchievement.id,
+	            		  setId: achievementRecord.nextAchievement.set.id,
+	            		  pet: self
+	            		}
+	            	  );
+	              arModel.set(achievementRecord);
+	              achievementRecords.push(arModel);
+              }
+          });
 
-      console.log(this);
+          this.achievementRecords = new AchievementRecordList();
+          this.achievementRecords.add(achievementRecords);
+        } else {
+          this.achievementRecords = new AchievementRecordList();
+        }
 
       /**
        * Instance of ServerController used in networking tasks.
@@ -138,15 +236,139 @@
       this.sc = new ServerController();
 
     },
+    
+    
+    /**
+     * 	Update the pet's latest achievements
+     */
+    latestAchievements: function(achievements) {
+        
+    	// Update the collecton of AchievementRecord models.
+    	if (achievements != undefined | null) {
+            var achievementRecords = [];
+            var self = this;
+            
+            achievements.forEach(function(achievementRecord) {
+          	  
+                // Do not show completed achievements
+                if (achievementRecord.nextAchievement != null) {
+  	              var arModel = 
+  	            	  AchievementRecord.findOrCreate(
+  	            		{
+  	            		  id: self.id + "_" 
+  	            		  	+ "_" + achievementRecord.nextAchievement.set.id,
+  	            		  	//+ achievementRecord.nextAchievement.id,
+  	            		  	//+ "_" + achievementRecord.currentAchievement.id
+  	            		  	//+ "_" + achievementRecord.currentAchievement.set.id,
+  	            		  nextId: achievementRecord.nextAchievement.id,
+  	            		  setId: achievementRecord.nextAchievement.set.id,
+  	            		  pet: self
+  	            		}
+  	            	  );
+  	              arModel.set(achievementRecord);
+  	              achievementRecords.push(arModel);
+                }
+            });
+            
+            this.achievementRecords.reset(achievementRecords);
+          
+    	} else {
+        
+    		this.achievementRecords.reset();
+    	}
+    	
+    	// Update the view with the latest achievements
+  	    this.trigger('onAchievementUpdate');
+    },
 
     validate: function(attrs) {
 
-      if (attrs === undefined | null) attrs = this. attributes;
+      err = {};
+      isValid = true;
 
-      if (attrs.name === undefined | null) {
+      if (attrs === undefined || attrs.name == null) attrs = this.attributes;
 
+      if (attrs.name == "" || attrs.name == undefined || attrs.name == null) {
+        err.name = "Pet must have a name.";
+        isValid = false;
       }
 
+      if (!this.isValidDate(attrs.dob)) {
+        err.dob = "Invalid date of birth.";
+        isValid = false;
+      }
+      
+      if (attrs.sex == undefined || attrs.sex == null) {
+        err.sex = "Pet must have a sex.";
+        isValid = false;
+      }
+
+      if (!isValid) {
+        this.trigger('error', err);
+        return false;
+      }
+      return true;
+
+    },
+
+    isValidDate: function(s) {
+
+      if (s == undefined || s == null || s == "") return false;
+
+      // TODO: refactor the code below; clean up logical flow
+      var dobRegexp = /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/;
+      var isDate = dobRegexp.test(s);
+      // Test to see if string is in correct format.
+      if (isDate == false) return false;
+      // Test if MM and DD are feasible.
+      var pieces = s.split('-');
+      var y = parseInt(pieces[0]);
+      var mm = parseInt(pieces[1]);
+      var dd = parseInt(pieces[2]);
+
+      if ((mm > 12) || (mm == 0)) return false;
+
+      switch (mm) {
+        case 1:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 2:
+          if (0 &lt; dd &lt; 29) break; return false;
+        case 3:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 4:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 5:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 6:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 7:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 8:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 9:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 10:
+          if (0 &lt; dd &lt; 32) break; return false;
+        case 11:
+          if (0 &lt; dd &lt; 31) break; return false;
+        case 12:
+          if (0 &lt; dd &lt; 32) break; return false;
+        default:
+          // Should not be reached.
+          return false;
+      }
+
+      // Make sure the date is not too far in the past.
+      if (y &lt; 1990) return false;
+
+      // Make sure date is not in the future.
+      var today = new Date();
+      var dob = new Date();
+      dob.setFullYear(y, mm-1, dd);
+
+      if (today &lt; dob) return false;
+
+      return true;
     },
 
 // Networking methods. --------------------------------------------------------/
@@ -161,13 +383,21 @@
      * On success, Pet instance's id is set to be the id returned by the server.
      */
     post: function() {
+
+      console.log('posting pet...');
+      console.log(this.toJSON());
+
+      // Don't try to post with invalid parameters.
+      if (this.validate() == false) return;
+
       // Don't try to post a pet that already has an id!
-      if (this.id != undefined | null) return;
+      if (this.id != -2 | undefined | null) return;
 
       var json = this.toJSON();
       var postData = 'pet=' + JSON.stringify(json);
       var ownerId = json.owner;
       var self = this;
+      console.log('/owner/' + ownerId + '/pet');
 
       this.sc.post(
         '/owner/' + ownerId + '/pet',
@@ -177,14 +407,21 @@
       ); 
 
       function onSuccess(rep, status, req) {
+        console.log(rep);
         var data;
         try {
-          data = JSON.parseJSON(rep);
+          data = JSON.parse(rep);
         } catch (e) {
           console.log(rep);
           // trigger error or redirect to 500 or something
         }
-        self.id = data['id'];
+        if (data.id != null) {
+          self.id = data.id;
+          self.set({id: data.id});
+          self.trigger('uploaded', self);
+        } else {
+          console.log("Pet creation failed.")
+        }
       }
 
       function onFailure(xhr, status, err) {
@@ -192,6 +429,63 @@
         // thrigger error event?
       }
 
+    },
+
+    put: function(ownerRef) {
+      console.log('updating pet...');
+      console.log(this.toJSON());
+
+      // Don't try to post with invalid parameters.
+      if (this.validate() == false) return;
+
+      var json = this.toJSON();
+      var postData = 'pet=' + JSON.stringify(json);
+      console.log(json);
+      var ownerId = ownerRef.get('id');
+      var self = this;
+      console.log('/owner/' + ownerId + '/pet/' + this.get('id'));
+
+      this.sc.put(
+        '/owner/' + ownerId + '/pets/' + this.get('id'),
+        postData,
+        onSuccess,
+        onFailure
+      ); 
+
+      function onSuccess(rep, status, req) {
+        console.log(rep);
+        var data;
+        try {
+          data = JSON.parse(rep);
+        } catch (e) {
+          console.log(e);
+          // window.location.href = '/500';
+        }
+        self.trigger('updated');
+      }
+
+      function onFailure(xhr, status, err) {
+
+      }
+    },
+
+    destroy: function(ownerRef) {
+      var self = this;
+      console.log('/owner/' + ownerRef.get('id') + '/pets/' + this.get('id'));
+      this.sc.del(
+        '/owner/' + ownerRef.get('email') + '/pets/' + this.get('id'),
+        null,
+        onSuccess,
+        onFailure
+      );
+      function onSuccess(rep, status, req) {
+        console.log(rep);
+        var data = JSON.parse(rep);
+        if (data.wasSuccessful == true) self.trigger('destroyed');
+      }
+      function onFailure(xhr, status, err) {
+
+      }
     }
 
   });
@@ -208,13 +502,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:45 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>

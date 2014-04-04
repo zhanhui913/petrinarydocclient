@@ -26,56 +26,91 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>define(function(require) {
-  
+  /**
+   * Renders template and manage events associated with pet picture upload
+   * modal window.
+   * Extends Backbone.View
+   * @exports views/pet/UploadPictureModalView
+   */
   var jquery              = require('libs/jquery'),
     underscore            = require('libs/underscore'),
     Backbone              = require('libs/backbone'),
     Picture               = require('models/Picture'),
     PictureList           = require('models/PictureList'),
-    uploadPictueTpl       = require('text!/templates/pet/upload-picture-window-tpl.html');
+    PictureUtils          = require('utils/PictureUtils'),
+    uploadPictureTpl       = require('text!/templates/pet/upload-picture-window-tpl.html');
 
   UploadPictureModalView = Backbone.View.extend({
 
     initialize: function(options) {
+      /** Reference to parent view.  Instance of ManagePicturesView. */
       this.parent = options.parent;
+
+      /** The model to which this view listens.  Instance of Picture.*/
       this.model = Picture.findOrCreate({});
+
+      /** The pictures list to which to append the newly uploaded picture. */
       this.pictures = options.pictures;
+
+      /** Instance of PictureUtils used in rendering image preview. */
+      this.picUtils = new PictureUtils({
+        maxWidth:   200,
+        maxHeight:  200
+      });
+
       this.delegateListeners();
     },
 
+    /** Class name of &lt;div> element into which this view's template will be 
+     * rendered. */
     className: 'upload-picture-el',
 
+    /** Render view template in this.el */
     render: function() {
 
-      var tpl = _.template(uploadPictueTpl);
+      var tpl = _.template(uploadPictureTpl);
       $(this.el).html(tpl);
+
+      // Now that canvas and imegl exist, tell pic utils how to find them.
+      this.picUtils.set({
+        canvas: $(this.el).find('#resize-canvas').get(0),
+        imgEl:  $(this.el).find('img').get(0)
+      });
 
       this.delegateEvents();
 
       return this;
     },
 
+    /** Display modal window associated with this view. */
     show: function() {
       $(this.el).find('#upload-picture-window').modal('show');
     },
 
+    /** Hide modal window associated with this view. */
     hide: function() {
       $(this.el).find('#upload-picture-window').modal('hide');
     },
 
+    /** Define DOM event listeners and callbacks. */
     events: {
       'change #picture-drag':      'onPictureSelect',
+      'change #file-select':       'onPictureSelect',
       'drop #picture-drag':       'onPictureSelect',
       'dragover #picture-drag':   'onPictureDrag',
       'dragleave #picture-drag':  'onPictureDrag',
       'click #confirm-upload-btn': 'onConfirmUpload'
     },
 
+    /** Register model event listeners and callbacks. */
     delegateListeners: function() {
       this.listenTo(this.model, 'change', this.render);
       this.listenTo(this.model, 'uploaded', this.onUpload);
+      this.model.on('error', this.onModelError, this);
     },
 
+    /** The file types we accept for upload to the server as the 
+     * owner's profile picture. */
     acceptedTypes: {
       'image/png':  true,
       'image/jpg':  true,
@@ -93,29 +128,17 @@
       e.preventDefault();
       e.originalEvent.target.className = (e.type == "dragover" ? "hover" : "");
 
-      // Replace the old image (if applicable)
-      $(this.el).find('#img-div').html('');
-
       // Fetch FileList object.
       var files = e.originalEvent.target.files || 
         e.originalEvent.dataTransfer.files;
 
       var file = this.file = files[0];
       if (this.acceptedTypes[file.type] === true) {
-          // Display preview of image in upload
-          var reader = new FileReader();
-          reader.onload = function (e) {
-              console.log(e);
-              var img = $('&lt;img>').attr('src', e.target.result).css(
-                  'max-width', '80%')
-                  .css('max-height', '80%').css('margin', '0 auto');
-              $('#picture-drag').find('#img-div').append(img);
-          };
 
-          reader.readAsDataURL(file);
-
+          this.picUtils.loadImg(file);
       } else {
-          // Do some error checking.
+
+
 
       }
     },
@@ -130,20 +153,54 @@
           "");
     },
 
+    /**
+     * Callback to click of the confirm upload button in the modal window.
+     * Calls listened to model's post() method.
+     */
     onConfirmUpload: function(e) {
       var description = $(this.el).find('#picture-description').val();
+      this.removeFeedback();
       this.model.set({description: description});
       this.model.post(this.file);
     },
 
+    /** Callback to 'uploaded' event triggered by the picture model to which this 
+     * view listens. */
     onUpload: function(picture) {
       // Add to collection, listening views will re-render themselves
-      console.log('on upload triggered...');
       this.pictures.add(picture);
       this.model = Picture.findOrCreate({id: -1});
       this.delegateListeners();
       this.hide();
-    }
+    },
+
+    /** Callback to 'error' event triggerd by the picture model to which this 
+     * view listens. Renders error messages to template */
+    onModelError: function(err) {
+      this.show();
+      if (err.msg != undefined) {
+        this.addWarning('.feedback', err.msg);
+      }
+    },
+
+    /**
+     * Adds the given message to the div(s) found by searching this.el using
+     * selector
+     * @param {String} selector - The selector to determine which elements will
+     * show the message.
+     * @param {String} msg - The message to be displayed.
+     */
+    addWarning: function(selector, msg) {
+      $(this.el).find(selector).html(msg);
+    },
+
+    /** 
+     * Clear feedback messages from template.
+     */
+    removeFeedback: function() {
+      $(this.el).find('.feedback').html('');
+    },
+
   });
 
   return UploadPictureModalView;
@@ -158,13 +215,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:45 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>

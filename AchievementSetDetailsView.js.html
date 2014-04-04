@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/admin/AchievementSetDetailsView.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/admin/AchievementSetDetailsView.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+  /**
+   * Renders and manages events associated with the achievement set details
+   * view on the achievements management page of the administrative console.
+   * Extends Backbone.View
+   * @exports views/admin/AchievementSetDetailsView
+   */
+  var jquery                        = require('libs/jquery'),
+    underscore                      = require('libs/underscore'),
+    Backbone                        = require('libs/backbone'),
+    jqueryUi                        = require('libs/jquery-ui'),
+    Admin                           = require('models/Admin'),
+    AchievementSetEditView          = require('views/admin/AchievementSetEditView'),
+    AddAchievementView              = require('views/admin/AddAchievementView'),
+    AchievementEditView             = require('views/admin/AchievementEditView'),
+    DeleteAchievementSetModalView   = require('views/admin/DeleteAchievementSetModalView')
+    detailsTpl                      = require('text!/templates/admin/achievement-set-details-tpl.html');
+  
+  AchievementSetDetailsView         = Backbone.View.extend({
+
+    initialize: function(options) {
+      /** Array of subviews.  Instances of AchievementEditView. */
+      this.views = [];
+
+      /** Instance of AddAchievementView. */
+      this.addAchievementView;
+
+      /** Instance of AchievementSetEditView. */
+      this.editSetView;
+
+      /** Reference to parent view.  Instance of ManageAchievementsView. */
+      this.parent = options.parent;
+
+      this.on('achievementUploaded', this.onAchievementUpload, this);
+      this.on('setUpdated', this.onSetUpdate, this);
+    },
+
+    /**
+     * Populate array of subviews based on model attribute values.
+     */
+    initSubviews: function() {
+      var self = this;
+      this.views = [];
+      this.model.get('achievements').models.forEach(function(achievement) {
+        var aev = new AchievementEditView({model: achievement});
+        self.views.push(aev);
+      });
+      this.addAchievementView = new AddAchievementView({
+        set: this.model,
+        parent: this
+      });
+    },
+
+    /**
+     * Destroy subivews (unbind events, remove from DOM) associated with this
+     * view.
+     */
+    destroySubviews: function() {
+      if (this.addAchievementView != undefined) {
+        this.addAchievementView.undelegateEvents();
+        this.addAchievementView.unbind();
+        this.addAchievementView.$el.off();
+        this.addAchievementView.remove();
+      }
+
+      this.views.forEach(function(aev) {
+        aev.undelegateEvents();
+        aev.unbind();
+        aev.$el.off();
+        aev.remove();
+      });
+      this.views = [];
+    },
+
+    /** Class name of &lt;div> DOM element into which this view will render its
+     * template. */
+    className: 'achievemet-set-details-el',
+
+    /** Render view template into this.el */
+    render: function() {
+      var self = this;
+      var tplModel = this.model == undefined ? undefined : this.model.toJSON();
+      var tpl = _.template(detailsTpl, {set: tplModel});
+      $(this.el).html(tpl);
+      this.renderSubviews();
+
+      $(this.el).find('.achievements').sortable();
+      $(this.el).find('.achievements').disableSelection();
+      // $(this.el).find('.achievements').on('sortchange', self.onSortChange, {cxt: self});
+
+      this.delegateEvents();
+      return this;
+    },
+
+    /** Render subviews associated with this view and append to appropriate place
+     * in the DOM. */
+    renderSubviews: function() {
+      $(this.el).find('.achievements').html('');
+      var container = document.createDocumentFragment();
+      this.views.forEach(function(aev) {
+        container.appendChild(aev.render().el);
+      });
+      $(this.el).find('.achievements').append(container);
+    },
+
+    delegateListeners: function() {
+      this.model.on('achievementsFetched', this.onModelFetch, this);
+    },
+
+    events: {
+      'click #add-achievement-btn': 'onAddAchievement',
+      'click #edit-set-btn':        'onEditSet',
+      'click #delete-set-btn':      'onDeleteSet',
+      'sortstop .achievements':       'onSortStop'
+    },
+
+    /** 
+     * Change the model which this view listens to. 
+     * @param {AchievementSet} newModel - The new instance of AchievementSet
+     * to which this view is to listen.
+     */
+    changeModel: function(newModel) {
+      console.log(newModel);
+      this.model = newModel;
+      this.destroySubviews();
+      this.delegateListeners();
+      this.model.fetch();
+    },
+
+    /** 
+     * Return the view which listens to the model with the given id.
+     * @param {String} id - The id of the model of the view to be retrieved.
+     * @return {AchievementEditView} The instance of AchievementEditView which
+     * listens to the model with the given id.  Null if no such view exists.
+     */
+    getViewByModelId: function(id) {
+      var ret = null;
+      this.views.forEach(function(aev) {
+        if (aev.model.get('id') == id) ret = aev;
+      });
+      return ret;
+    },
+
+    /**
+     * Callback to 'achievementsFetched' event triggered by the modle to which this
+     * view listens.
+     */
+    onModelFetch: function() {
+      this.initSubviews();
+      this.render();
+    },
+
+    /**
+     * Callback to click of add achievement button.
+     * Displays achievement addition modal window.
+     */
+    onAddAchievement: function() {
+      if (this.addAchievementView != undefined) {
+        $('body').append(this.addAchievementView.render().el);
+      }
+      this.addAchievementView.show();
+    },
+
+    /**
+     * Callback to clcik of edit achievement set button.
+     * Displays achievment set edit modal window.
+     */
+    onEditSet: function() {
+      if (this.editSetView == undefined) {
+        this.editSetView = new AchievementSetEditView({
+          parent: this
+        });
+        this.editSetView.changeModel(this.model);
+        $('body').append(this.editSetView.render().el);
+      }
+      this.editSetView.changeModel(this.model);
+      this.editSetView.render();
+      this.editSetView.show();
+
+    },
+
+    /**
+     * Callback to click of achievement set deletion button.
+     * Displays the achievement set deletion modal window.
+     */
+    onDeleteSet: function() {
+      if (this.deleteSetView == undefined) {
+        this.deleteSetView = new DeleteAchievementSetModalView({
+          parent: this
+        });
+        this.deleteSetView.changeModel(this.model);
+        $('body').append(this.deleteSetView.render().el);
+      }
+      this.deleteSetView.changeModel(this.model);
+      this.deleteSetView.render();
+      this.deleteSetView.show();
+    },
+
+    /**
+     * Callback to 'achievementUploaded' event triggered by AddAchievementView
+     * subview.  Adds achievement to the AchievementSet model to which this
+     * view is listening and re-renders list of achievements in this view. 
+     */
+    onAchievementUpload: function(newAchievement) {
+      // Make sure a zombie view is not triggering this view again.
+      var results = _.filter(this.views, function(aev) {
+        return aev.model.get('id') == newAchievement.get('id');
+      });
+
+      if (results.length == 0) {
+        this.model.get('achievements').add(newAchievement);
+        var total = parseInt(this.model.get('total'));
+        this.model.set({total: total + 1});
+        var aev = new AchievementEditView({model: newAchievement});
+        this.views.push(aev);
+        $(this.el).find('.achievements').append(aev.render().el);       
+      }
+      // Else, do nothing
+
+    },
+
+    /** 
+     * Callback to "setUpdated" event triggered by AchievementSetEditView 
+     * subivew.  Re-renders the view to reflect the changes in the set.
+     * Triggers setUpdated view on parent view such that achievement set list
+     * view can also re-render to reflect the changes.
+     */
+    onSetUpdate: function() {
+      this.render();
+      this.delegateEvents();
+      this.parent.trigger('setUpdated', this.model);
+    },
+
+    onSortStop: function(event, ui) {
+      console.log(event);
+      console.log($(ui.item[0]).find('#id').val());
+
+      var className = this.views[0].className;
+                      // FAILS HERE------------------------------------------------//
+      var elems = $(this.el).find('.' + className);
+      var id = $(ui.item[0]).find('#id').val();
+      var model = null;
+      var view;
+      for (var i = 1; i &lt;= elems.length; i++) {
+        if ($(elems[i-1]).find('#id').val() == id) {
+          model = this.model.getAchievementById(id);
+
+          if (model != null) {
+            // Don't do anything if the position hasn't changed.
+            if (model.get('position') != i) {
+
+              view = this.getViewByModelId(id);
+
+              model.set({position: i});
+              view.removeFeedback();
+              view.showSpinner();
+              model.updatePosition();
+            }
+          }
+        }
+      }
+    }
+
+  });
+  return AchievementSetDetailsView;
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

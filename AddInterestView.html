@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: views/pet/AddInterestView</title>
+    <title>JSDoc: Module: views/admin/AddInterestView</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: views/pet/AddInterestView</h1>
+    <h1 class="page-title">Module: views/admin/AddInterestView</h1>
 
     
 
@@ -27,7 +27,7 @@
 
 <header>
     <h2>
-    views/pet/AddInterestView
+    views/admin/AddInterestView
     </h2>
     
 </header>
@@ -38,10 +38,8 @@
 
     
         
-            <div class="description">View used in pet profile page for displaying the interest list header
-and implementing functionality regarding to the addition of an interest to
-a pet's profile.
-Extends Backbone.View</div>
+            <div class="description">Renders template and manages events associated with the add new interest
+panel in the adminstrative console.</div>
         
 
         
@@ -67,7 +65,7 @@ Extends Backbone.View</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line9">line 9</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line7">line 7</a>
     </li></ul></dd>
     
 
@@ -99,14 +97,15 @@ Extends Backbone.View</div>
         <dl>
             
 <dt>
-    <h4 class="name" id="interestsList"><span class="type-signature"></span>interestsList<span class="type-signature"></span></h4>
+    <h4 class="name" id="categories"><span class="type-signature"></span>categories<span class="type-signature"></span></h4>
 
     
 </dt>
 <dd>
     
     <div class="description">
-        List of all interests currently at server.
+        Collection of categories available to be associated with Interest
+to be created.
     </div>
     
 
@@ -135,7 +134,7 @@ Extends Backbone.View</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line28">line 28</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -162,7 +161,7 @@ Extends Backbone.View</div>
 <dd>
     
     <div class="description">
-        The model this view listens to -- a new instance of InterestRecord
+        The model to which this view listens.  Instance of Interest.
     </div>
     
 
@@ -191,7 +190,7 @@ Extends Backbone.View</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line25">line 25</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line21">line 21</a>
     </li></ul></dd>
     
 
@@ -218,7 +217,7 @@ Extends Backbone.View</div>
 <dd>
     
     <div class="description">
-        Reference to containing parent view -- an instance of PetSocialView.
+        Reference to parent view.  Instance of ManageInterestsView.
     </div>
     
 
@@ -247,121 +246,7 @@ Extends Backbone.View</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line23">line 23</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-    
-
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="values"><span class="type-signature"></span>values<span class="type-signature"></span></h4>
-
-    
-</dt>
-<dd>
-    
-    <div class="description">
-        Array of descriptions of interests at server -- used to aid in 
-autocompletion.
-    </div>
-    
-
-    
-
-    
-<dl class="details">
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line34">line 34</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-    
-
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="className"><span class="type-signature">&lt;inner> </span>className<span class="type-signature"></span></h4>
-
-    
-</dt>
-<dd>
-    
-    <div class="description">
-        Class name given to <div> element this view will render its template 
-into.
-    </div>
-    
-
-    
-
-    
-<dl class="details">
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line45">line 45</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line19">line 19</a>
     </li></ul></dd>
     
 
@@ -388,7 +273,7 @@ into.
 <dd>
     
     <div class="description">
-        Defines event listeners and callbacks.
+        Define DOM event listeners and callbacks.
     </div>
     
 
@@ -417,7 +302,63 @@ into.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line64">line 64</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line49">line 49</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="MAX_DIMENSION"><span class="type-signature">&lt;inner> </span>MAX_DIMENSION<span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+    
+    <div class="description">
+        The maximum size of any dimension of the image
+    </div>
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line90">line 90</a>
     </li></ul></dd>
     
 
@@ -443,7 +384,7 @@ into.
         <dl>
             
 <dt>
-    <h4 class="name" id="delegateListeners"><span class="type-signature">&lt;inner> </span>delegateListeners<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="addInterest"><span class="type-signature">&lt;inner> </span>addInterest<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -451,7 +392,8 @@ into.
 
     
     <div class="description">
-        Bind callbacks for object events that the view listens to.
+        Callback to click of add-new-interest-btn.  Set this.model attributes
+and calls its associated post function.
     </div>
     
 
@@ -484,7 +426,7 @@ into.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line70">line 70</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line73">line 73</a>
     </li></ul></dd>
     
 
@@ -514,7 +456,7 @@ into.
         
             
 <dt>
-    <h4 class="name" id="getInterestFromValue"><span class="type-signature">&lt;inner> </span>getInterestFromValue<span class="signature">(str)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="checkForEnter"><span class="type-signature">&lt;inner> </span>checkForEnter<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -522,8 +464,8 @@ into.
 
     
     <div class="description">
-        Determines if the given string is a description in the interest list,
-returns the interest object whose description matches the string,
+        Check for press of enter key on key up.  Trigger click of 
+add-new-interest-btn if key pressed is 'Enter'
     </div>
     
 
@@ -531,54 +473,6 @@ returns the interest object whose description matches the string,
 
     
 
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>str</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">The string value currently in the input field.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
     
 
     
@@ -604,7 +498,7 @@ returns the interest object whose description matches the string,
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line80">line 80</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line116">line 116</a>
     </li></ul></dd>
     
 
@@ -634,7 +528,7 @@ returns the interest object whose description matches the string,
         
             
 <dt>
-    <h4 class="name" id="onAddInterest"><span class="type-signature">&lt;inner> </span>onAddInterest<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="hide"><span class="type-signature">&lt;inner> </span>hide<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -642,9 +536,7 @@ returns the interest object whose description matches the string,
 
     
     <div class="description">
-        Callback fired on click of add interest button.
-Calls the associated InterestRecord's post() method to save interest at 
-server after validation of value in input.
+        Hide the modal window associated with this view.
     </div>
     
 
@@ -677,7 +569,7 @@ server after validation of value in input.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line126">line 126</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line63">line 63</a>
     </li></ul></dd>
     
 
@@ -707,7 +599,7 @@ server after validation of value in input.
         
             
 <dt>
-    <h4 class="name" id="onInterestsFetched"><span class="type-signature">&lt;inner> </span>onInterestsFetched<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="onCategoriesChange"><span class="type-signature">&lt;inner> </span>onCategoriesChange<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -715,8 +607,14 @@ server after validation of value in input.
 
     
     <div class="description">
-        Callback fired on update of list of interests retrieved from server.
-Populates this.values array.
+        On selection of image file, renders preview of image to 
+      renderImagePreview: function(e) {
+
+      },
+
+      /**
+Callback to change in collection of categories available for association
+with the Interest to be created.
     </div>
     
 
@@ -749,7 +647,7 @@ Populates this.values array.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line106">line 106</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line110">line 110</a>
     </li></ul></dd>
     
 
@@ -779,7 +677,7 @@ Populates this.values array.
         
             
 <dt>
-    <h4 class="name" id="onKeyup"><span class="type-signature">&lt;inner> </span>onKeyup<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="onFileSelect"><span class="type-signature">&lt;inner> </span>onFileSelect<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -787,8 +685,8 @@ Populates this.values array.
 
     
     <div class="description">
-        Callback for keyup event -- determines if 'enter' key was pressed and 
-fires onAddInterest if this is the case.
+        Listens for the selection of a file.  This event and event handler will
+be used to render live previews of the interest image.
     </div>
     
 
@@ -821,7 +719,7 @@ fires onAddInterest if this is the case.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line95">line 95</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line127">line 127</a>
     </li></ul></dd>
     
 
@@ -851,7 +749,7 @@ fires onAddInterest if this is the case.
         
             
 <dt>
-    <h4 class="name" id="onUpload"><span class="type-signature">&lt;inner> </span>onUpload<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="onInterestUpload"><span class="type-signature">&lt;inner> </span>onInterestUpload<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -859,8 +757,10 @@ fires onAddInterest if this is the case.
 
     
     <div class="description">
-        Callback fired on trigger of 'uploaded' event by InterestRecord instance
-this model is listening to.
+        Listens to event triggered by interest when it has been successfully
+uploaded to server.
+Handles informing parent view that new interest needs to be rendered
+to interest list view.
     </div>
     
 
@@ -893,7 +793,80 @@ this model is listening to.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line146">line 146</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line138">line 138</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="onKeyUp"><span class="type-signature">&lt;inner> </span>onKeyUp<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        Callback to keyup event in new interest description input -- called
+to make description text for interest preview match the text in the
+input.
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+<dl class="details">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line97">line 97</a>
     </li></ul></dd>
     
 
@@ -931,7 +904,7 @@ this model is listening to.
 
     
     <div class="description">
-        Render View template into div element.
+        Render template into this.el.
     </div>
     
 
@@ -964,7 +937,7 @@ this model is listening to.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line57">line 57</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line36">line 36</a>
     </li></ul></dd>
     
 
@@ -994,7 +967,7 @@ this model is listening to.
         
             
 <dt>
-    <h4 class="name" id="set"><span class="type-signature">&lt;inner> </span>set<span class="signature">(attributes)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="show"><span class="type-signature">&lt;inner> </span>show<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 </dt>
@@ -1002,7 +975,7 @@ this model is listening to.
 
     
     <div class="description">
-        Set instance attributes based on object passed.
+        Show the modal window associated with this view.
     </div>
     
 
@@ -1010,54 +983,6 @@ this model is listening to.
 
     
 
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>attributes</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">JSON objects of instance attributes to be set.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
     
 
     
@@ -1083,7 +1008,7 @@ this model is listening to.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="AddInterestView.js.html">views/pet/AddInterestView.js</a>, <a href="AddInterestView.js.html#line51">line 51</a>
+        <a href="AddInterestView.js.html">views/admin/AddInterestView.js</a>, <a href="AddInterestView.js.html#line58">line 58</a>
     </li></ul></dd>
     
 
@@ -1126,13 +1051,13 @@ this model is listening to.
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:46 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:43 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>

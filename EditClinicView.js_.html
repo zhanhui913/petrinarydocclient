@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/clinic/EditClinicView.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/clinic/EditClinicView.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+
+  var jquery                  = require('libs/jquery'),
+      underscore              = require('libs/underscore'),
+      Backbone                = require('libs/backbone'),
+      editClinicModalTpl      = require('text!/templates/clinic/edit-clinic-tpl.html');
+
+  
+  /**
+   * This view is called from the ClinicView through the Backbone router.
+   * Resonsible for rendering the window which allows the clinic to edit
+   * its information and handling all associated functionality.
+   * Extends Backbone.View
+   * @exports views/clinic/EditCLinicView
+   */
+  EditClinicView = Backbone.View.extend({
+
+	/**
+	 * Initializes this view by delegating event listeners.
+	 */
+    initialize: function(options) {
+      this.delegateListeners();
+    },
+
+    el: '#edit-clinic-el',
+
+    
+	// ===================== Getters for form inputs ===========================/
+
+    /**
+     * @return (string) The value input field specified by the given id.
+     */
+    getValById: function(id) {
+    	 return $(this.el).find('#' + id).val();
+     },
+     
+    /**
+     * @return The element with class from-group which is closest to the element
+     * with the given id. 
+     */
+    getFormGroupById: function(id) {
+    	return $(this.el).find('#' + id).closest('.form-group');
+    },
+    
+	
+    // =================== Content rendering functions =========================/
+
+    /** Render the edit clinic model window template. */
+    render: function() {
+    
+      var tpl = _.template(editClinicModalTpl, {clinic: this.model.toJSON()});
+      $(this.el).empty();
+      $(this.el).html(tpl);
+      this.show();
+      return this;
+    },
+
+    /** Show view modal window. */
+    show: function() {
+      $(this.el).find('#edit-clinic-window').modal('show');
+    },
+
+    /** Hide view modal window. */
+    hide: function() {
+      $(this.el).find('#edit-clinic-window').modal('hide');
+      router.navigate(window.location.base, {trigger: false, replace: true});
+    },
+    
+    /**
+     * Return object containing values of input fields in View's template.
+     * @return {Object} A JSON object which as as key values the id's of the
+     * input elements in the view template and values equal to the associated
+     * input values.
+     */
+    getValuesFromForm: function() {
+      return {
+        name:           $(this.el).find('#name').val(),
+        email:          $(this.el).find('#email').val(),
+        password:       $(this.el).find('#password').val(),
+        address:        $(this.el).find('#address').val(),
+        postalCode:     $(this.el).find('#postal-code').val(),
+        city:           $(this.el).find('#city').val(),
+        province:       $(this.el).find('#province').val(),
+        phoneNumber:    $(this.el).find('#phone-number').val(),
+        contactPerson:  $(this.el).find('#contact-person').val(),
+        website:        $(this.el).find('#website').val()
+      };
+    },
+
+    /** Register model event listeners and callbacks. */
+    delegateListeners: function() {
+      this.model.on('coordinatesFetched', this.onCoordinatesFetched, this);
+      this.model.on('coordinatesError', this.onCoordinatesError, this);
+      this.model.on('updated', this.onUpdate, this);
+      this.model.on('fetched', this.onFetch, this);
+      this.model.on('error', this.onModelError, this);
+    },
+	    
+    /**
+     * Called to replace the model the current view is listening to.
+     * @param {Clinic} newModel - the new model this view is to listen to
+     */
+    changeModel: function(newModel) {
+    	this.model = newModel;
+    	this.unbind();
+    	this.delegateListeners();
+    },
+
+    /** Animate spinner in appropriate element in view template. */
+    showSpinner: function() {
+      $(this.el).find('.coords-spinner').css('opacity', 1);
+    },
+
+    /** Hide animation of spinner in view template. */
+    hideSpinner: function() {
+      $(this.el).find('.coords-spinner').css('opacity', 0);
+    },
+
+    /** Defines DOM event callbacks and listeners. */
+    events: {
+      'click #edit-clinic-window .close': 'hide',
+      'click #edit-clinic-window .close-record-modal': 'hide',
+      'focusout #edit-clinic-window #address': 'getCoordinates',
+      'focusout #edit-clinic-window #city': 'getCoordinates',
+      'click #edit-clinic-window #confirm-edit-clinic-btn': 'onEditClinic',
+      'keydown #edit-clinic-window input': 'checkForEnterKeySave',
+      'focusout #edit-clinic-window #email': 'emailChanged',
+      'focusout #edit-clinic-window #password': 'passwordChanged',
+      'focusout #edit-clinic-window #repassword': 'repasswordChanged',
+      'focusin #edit-clinic-window input': 'destroyPopup'
+    },
+
+    /**
+     * Call model.getCoordinates() function in order to query google 
+     * geocoding api to receive latitude and longitude for associated clinic.
+     */
+    getCoordinates: function() {
+      var attrs = this.getValuesFromForm();
+      this.showSpinner();
+      this.model.getCoordinates(attrs.address, attrs.city);
+      this.model.validate();
+    },
+
+    /**
+     * Callback to succesful return of coordinates by google geocode api call.
+     * @param {Object} rep - The response returned by the google geocode api
+     * call.
+     */
+    onCoordinatesFetched: function(rep) {
+      this.hideSpinner();
+      $(this.el).find('.google-feedback')
+        .removeClass('text-danger').addClass('text-success')
+        .html('Google returned coordinates ' +
+        'for the follow address:&lt;br>' + rep.formatted_address);
+    },
+
+    /**
+     * Callback to unsuccessful return of coordinates by the google geocode
+     * api call.
+     * @param {Object} err - The error mesage returned by the Google geocode
+     * api call.
+     */
+    onCoordinatesError: function(err) {
+      this.hideSpinner();
+      $(this.el).find('.google-feedback')
+      .removeClass('text-success').addClass('text-danger')
+      .html('Google responded with:\n ' +
+        err);
+    },
+    
+	/**
+	 * Set the enter key to click the "Save" button.
+	 */
+    checkForEnterKeySave: function(e) {
+      var keyCode = (e.keyCode ? e.keyCode : e.which);
+      if (keyCode == '13') {
+    	e.preventDefault();
+    	this.onEditClinic();
+      }
+    },
+      
+    /**
+     * Validate the new email.
+     */
+    emailChanged: function() {
+    	this.removeCreateFeedback(this.getFormGroupById('email'));
+    	this.model.set({email: this.getValById('email')});
+    	this.model.validate();
+    },
+    
+    /**
+     * Validate the new password.
+     */
+    passwordChanged: function() {
+    	this.removeCreateFeedback(this.getFormGroupById('password'));
+    	this.model.set({password: this.getValById('password')});
+    	this.model.validate();
+    },
+    
+    /**
+     * Validate the new repassword.
+     */
+    repasswordChanged: function() {
+    	this.removeCreateFeedback(this.getFormGroupById('repassword'));
+    	this.model.set({repassword: this.getValById('repassword')});
+    	this.model.validate();
+    },
+    
+    /**
+     * Destroys the popup over the input field which was called as context for 
+     * this callback function.
+     */
+    destroyPopover: function() {
+    	$(this).popover('destroy');
+    },
+    
+    /**
+     * Remove all feedback from the given form group element.
+     * @param formGroup The DOM element from which we wish to remove all feedback.
+     */
+    removeCreateFeedback: function(formGroup) {
+      $(formGroup)
+        .removeClass('has-error')
+        .removeClass('has-success');
+
+      $(formGroup).find('span')
+        .removeClass('glyphicon-warning-sign')
+        .removeClass('text-danger')
+        .removeClass('text-success')
+        .removeClass('glyphicon-ok')
+        .removeClass('glyphicon-repeat')
+        .removeClass('spin');
+      $(formGroup).find('input').popover('destroy');
+    },
+    
+    /**
+     * Displays a warning on the given form group element and create a popover 
+     * with the given message.  No popover create if message == "", null or is 
+     * undefined.
+     */
+    addCreateWarning: function(formGroup, message) {
+    	
+      // Clear previous messages.
+      this.removeCreateFeedback(formGroup);
+      
+      $(formGroup)
+        .addClass('has-error');
+
+      $(formGroup).find('span')
+        .removeClass('glyphicon-ok')
+        .addClass('glyphicon-warning-sign').removeClass('text-success')
+        .addClass('text-danger');
+
+      // If called with no message defined, we should not create a popover.
+      if (message == "") return;
+
+      // Else, create new popover with message.
+      $(formGroup).find('input').popover({
+        placement: 'right',
+        content: function() {
+          // Hack to allow us to redefine popover message content.
+          var msg = message;
+          return msg;
+        }
+      });
+
+      $(formGroup).find('input').popover('show');
+    },
+    
+    /**
+     * Called when the model this view is observing (an instance of the Clinic
+     * model) triggers an 'error' event.  The expectation is that the callback
+     * will be returned with an object 'errors' which has the error message.
+     */
+    onModelError: function(errors) {
+        if (errors.email != undefined) {
+            this.addCreateWarning(this.getFormGroupById('email'), 
+            		errors.email);
+        }
+        
+        if (errors.password != undefined) {
+            this.addCreateWarning(this.getFormGroupById('password'), 
+            		errors.password);
+        }
+        
+        if (errors.repassword != undefined) {
+            this.addCreateWarning(this.getFormGroupById('repassword'),
+            		errors.repassword);
+        }
+	},
+    
+    /**
+     * Callback to click of confirm-edit-clinic-btn.  Sets model attributes
+     * according to form values and calls the associate update function.
+     */
+    onEditClinic: function() {
+      var attrs = this.getValuesFromForm();
+      this.model.set(attrs);
+      // Set passwordReset so that the controller will reset user's session
+      this.model.set({passwordReset: true});
+      this.model.put();
+    },
+
+    /**
+     * Callback to trigger of 'fetched' event by listened to model associated
+     * with this view.
+     */
+    onFetch: function() {
+      this.render();
+    },
+    
+    /**
+     * Callback to trigger of 'updated' event by listened to model associated
+     * with this view.
+     */
+    onUpdate: function() {
+      this.hideSpinner();
+      $('#owner-profile').html("&lt;h4>&lt;span class=\"text-success padding-top\">" +
+    		  "Your profile has been updated!&lt;/span>&lt;/h4>");
+      this.hide();
+    }
+    
+  });
+
+  return EditClinicView;
+
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

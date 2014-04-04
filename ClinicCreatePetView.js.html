@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/clinic/ClinicCreatePetView.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/clinic/ClinicCreatePetView.js</h1>
+
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>define(function(require) {
+
+	var jquery              = require('libs/jquery'),
+		jqueryUI            = require('libs/jquery-ui'),
+		Backbone            = require('libs/backbone'),
+	    ClinicList          = require('models/ClinicList'),
+	    SpeciesList         = require('models/SpeciesList'),
+		ownerCreatePetTpl  	= require('text!/templates/clinic/owner-create-pet-tpl.html');
+
+
+	/**
+	 * This view is called from the ClinicView through the Backbone router.
+	 * It renders the create pet fields into the create pet owner account 
+	 * modal window. In addition, this view  validates the pet fields in the 
+	 * create pet owner account modal window.
+	 * 
+	 * Extends Backbone.View
+	 * @exports views/clinic/ClinicCreatePetView
+	 */
+  	ClinicCreatePetView = Backbone.View.extend({
+	
+  		/**
+  		 * Initializes the modal window
+  		 */
+  		initialize: function() {
+  			
+  			// Set the home clinic
+  			homeClinic = this.model.get('homeClinic');
+  			
+  			var ownercreatepetTpl = _.template(ownerCreatePetTpl, {});
+  			$(this.el).html(ownercreatepetTpl);
+  			
+  			/** Collection of instances of Clinic used in autocompletion of form. */
+  			this.clinics = new ClinicList();
+  			this.clinics.on('fetched', this.onClinicsFetched, this);
+  			this.clinics.fetch();
+  			
+  			/** Collection of instances of Species used in autocompletion of form. */
+  			this.species = new SpeciesList();
+  			this.species.on('fetched', this.onSpeciesFetched, this);
+  			this.species.fetch();
+  			
+  			// Event bindings
+  	        this.events = {
+  	        		
+        		// Create feature
+    	        'focusout #name': 							'nameChanged',
+    	        'focusout #species': 						'speciesChanged',
+    	        'click input[name="sex"]:radio':			'sexChanged',
+    	        'focusout #home-clinic': 					'hClinicChanged',
+    	        'click #create-pet-information .close':     'hide'
+  	        };  
+  			
+  	        // Listeners to the model
+    	    this.delegateListeners();
+  		},
+    
+  		// The container in the DOM for this view to render into.
+  		el:	'#create-pet-information',
+  		
+  		
+  		
+  	    // =================== Content rendering functions =========================/
+  		
+  		/**
+  		 *	Render the create owner modal window.
+  		 */
+  		render: function() {
+  			var self = this;
+  			
+  			// Reset the modal window then show it
+  			$('#create-owner-window-title').text("New Pet Owner Account");
+  			$('#create-owner-form').trigger('reset');
+  			//$('#create-owner-form.radio-inline').prop('checked', false);
+  			$('#create-owner-form-errors').html('');
+  			this.destroyPopover();
+  			//this.removeFeedback($(this.el).find('#owner-email-new').closest('.form-group'));
+  			//this.removeFeedback($(this.el).find('#owner-username-new').closest('.form-group'));
+  			this.removeFeedback($(this.el).find('#name').closest('.form-group'));
+  			this.removeFeedback($(this.el).find('#dob').closest('.form-group'));
+  			this.removeFeedback($(this.el).find('#species').closest('.form-group'));
+  			this.removeFeedback($(this.el).find('#sex').closest('.form-group'));
+  			this.removeFeedback($(this.el).find('#home-clinic').closest('.form-group'));
+  			
+  			// Closing the modal window will remove all field, re-enter home clinic
+  			if($('#home-clinic').val() == '')
+  				$('#home-clinic').val(homeClinic);
+  			
+  			$('#create-owner-form-errors').empty();
+  			$('#dob').datepicker({
+  			    onSelect: function() {
+  			    	self.dobChanged();
+  			    }
+  			});
+  			
+    	    if (this.values != null || this.values != undefined) {
+      	        $(this.el).find('#home-clinic').autocomplete({
+      	          source: self.values,
+      	          minLength: 3
+      	        });       
+      	        $('html').find('.ui-autocomplete').css('z-index', 999999);
+      	    }
+    	    
+    	    if (this.speciesValues != null || undefined) {
+    	    	$(this.el).find('#species').autocomplete({
+    	    		source: self.speciesValues,
+    	    	});       
+    	    	$('html').find('.ui-autocomplete').css('z-index', 999999);
+    	    }    
+    	    
+  			// Show the create owner account modal window
+  			$('#create-owner-window').modal('show');
+  		},
+  		
+  		/**
+  		 * Listeners for the model.
+  		 */
+  	    delegateListeners: function() {
+
+    	    this.model.on('error', this.onError, this);
+      	    this.model.on('uploaded', this.onUpload, this);
+  	    },
+  	    
+  	    /**
+  	     * Change the view to listen to the new model.
+  	     */
+  	    changeModel: function(newModel) {
+  	    	this.model = newModel;
+  	    	this.unbind();
+  	    	this.delegateListeners();
+  	    },
+
+  		
+  	    /**
+  	     * Retrevies the pet values from the form in the template. 
+  	     * @return {Object} JSON object with key values equal to input field values.
+  	     */
+  	    getFormValues: function() {
+  	      return {
+  	        name:       $(this.el).find('#name').val(),
+  	        dob:        this.convertDob($(this.el).find('#dob').val()),
+  	        sex:        $(this.el).find('input[name="sex"]:radio:checked').val(),
+  	        species:    $(this.el).find('#species').val(),
+  	        breed:      $(this.el).find('#breed').val(),
+  	        homeClinic: $(this.el).find('#home-clinic').val()
+  	      };
+  	    },
+
+  	    /** Convert dob from form to format expected by the server. 
+  	     * @param {string} str - the date str whose format is to be changed.
+  	     * @return {string} A date string in the format expected by the server.
+  	     */
+  	    convertDob: function(str) {  
+  	      var pieces = str.split('/');
+  	      return pieces[2] + '-' + pieces[0] + '-' + pieces[1];
+  	    },
+  	    
+  	    /**
+  	     * Validate the pet's name.
+  	     */
+  		nameChanged: function() {
+  			this.currentCheck = 'name';
+  			this.removeFeedback($(this.el).find('#name').closest('.form-group'));
+  			this.model.set({name: $(this.el).find('#name').val()});
+  			this.model.validate();
+  		},
+
+  	    /**
+  	     * Validate the pet's dob.
+  	     */
+  		dobChanged: function() {
+  			this.currentCheck = 'dob';
+  			this.removeFeedback($(this.el).find('#dob').closest('.form-group'));
+  			this.model.set({dob: this.convertDob($(this.el).find('#dob').val())});
+  			this.model.validate();
+  		},
+  	    
+  	    /**
+  	     * Validate the pet's species.
+  	     */
+  		speciesChanged: function() {
+  			
+  			var formSpecies = $(this.el).find('#species').val();
+  			var species = this.getSpeciesFromValues(formSpecies);
+  			
+  			this.removeFeedback($(this.el).find('#species').closest('.form-group'));
+  			// Ensure that the user has entered the name of a species we recognize
+  			if ((species == null) || (species == undefined)) {
+  				this.addWarning(
+  						$(this.el).find('#species').closest('.form-group'),
+  						"That is not a species that we recognize."
+  				);
+  				return;
+  			}
+  		},
+
+  	    /**
+  	     * Validate the pet's sex.
+  	     */
+  		sexChanged: function() {
+  			this.currentCheck = 'sex';
+  			this.removeFeedback($(this.el).find('#sex').closest('.form-group'));
+  			this.model.set({sex: $(this.el).find('input[name="sex"]:radio:checked').val()});
+  			this.model.validate();
+  		},
+  		
+  	    /**
+  	     * Validate the pet's home clinic.
+  	     */
+  		hClinicChanged: function() {
+  			
+  			var homeClinic = $(this.el).find('#home-clinic').val();
+  			var clinic = this.getClinicFromValues(homeClinic);
+  			
+  			this.removeFeedback($(this.el).find('#home-clinic').closest('.form-group'));
+  			if ((clinic == null || clinic == undefined) &amp;&amp; (homeClinic != "")) {
+  				this.addWarning(
+  						$(this.el).find('#home-clinic').closest('.form-group'), 
+  						"We do not recognize that clinic.  Please select one we have on " + 
+  						"record or leave the field blank.");
+  			}
+  		},
+  		
+  	    /**
+  	     * Destroys the popup over the input field which was called as context for this
+  	     * callback function.
+  	     */
+  	    destroyPopover: function() {
+  	    	$(this).popover('destroy');
+  	    },
+  		
+  	    /** Remove feedback from input elements. */
+  	    removeFeedback: function(formGroup) {
+  	      $(formGroup)
+  	        .removeClass('has-error')
+  	        .removeClass('has-success');
+  	      
+  	      $(formGroup).find('span')
+          .removeClass('glyphicon-warning-sign')
+          .removeClass('text-danger')
+          .removeClass('text-success')
+          .removeClass('glyphicon-ok')
+          .removeClass('glyphicon-repeat')
+          .removeClass('spin');
+        
+  	      $(formGroup).popover('destroy');
+  	    },
+
+  	    /**
+  	     * Displays a warning in the feedback div of the given form group element.
+  	     * @param {domelement} fromGroup -  The form group corresponding to the
+  	     * input with the error.
+  	     * @param {string} message - The error message to be displayed.
+  	     */
+  	    addWarning: function(formGroup, message) {
+  	    	
+  	      // Clear previous messages.
+  	      this.removeFeedback(formGroup);
+
+  	      $(formGroup)
+  	      .addClass('has-error');
+
+  	      $(formGroup).find('span')
+          .addClass('glyphicon-warning-sign')
+          .addClass('text-danger');
+
+  	      // If called with no message defined, we should not create a popover.
+  	      if (message == "" || message == null || message == undefined) return;
+
+  	      // Else, create new popover with message.
+  	      $(formGroup).popover({
+  	    	  placement: 'right',
+  	    	  content: function() {
+  	    		  // Hack to allow us to redefine popover message content.
+  	    		  var msg = message;
+  	    		  return msg;
+  	    	  }
+  	      });
+  	      
+  	      $(formGroup).popover('show');
+  	    },
+
+  	    /** This function is called from ClinicView.
+  	     * 	Used to validate the pet's field when creating a new pet owner
+  	     *  account.
+  	     *  @return {boolean} true/false - true if all the fields are valid
+  	     */
+  	    addPet: function() {
+
+  	      var formValues = this.getFormValues();
+  	      var self = this;
+  	      var clinic = this.getClinicFromValues(formValues.homeClinic);
+  	      var species = this.getSpeciesFromValues(formValues.species);
+  	      var speciesError = false;
+  	      var clinicError = false;
+
+  	      // Ensure that the user has entered the name of a species we recognize
+  	      if ((species == null) || (species == undefined)) {
+  	        this.addWarning(
+  	          $(this.el).find('#species').closest('.form-group'),
+  	          "That is not a species that we recognize."
+  	        );
+  	        speciesError = true;
+  	      }
+
+  	      if (!speciesError) {
+  	    	formValues.species = species;
+  	      }
+  	      
+  	
+  	      // Ensure that the user has entered the name of a clinic we recognize
+  	      // or none at all.
+  	      if ((clinic == null | undefined) &amp;&amp; (formValues.homeClinic != "")) {
+  	        this.addWarning(
+  	          $(this.el).find('#home-clinic').closest('.form-group'), 
+  	          "We do not recognize that clinic.  Please select one we have on " + 
+  	          "record or leave the field blank."
+  	        );
+  	        clinicError = true;
+  	      }
+  	      
+  	      if (!clinicError) {
+	  	      if (clinic == undefined || clinic == null) {
+	  	        formValues.homeClinic = null;
+	  	      } else {
+	  	        formValues.homeClinic = clinic.get('id');
+	  	      }
+  	      }
+  	      
+  	      this.model.set(formValues);
+
+  	      // Validate for all pet fields when button is pressed
+  	      this.currentCheck = 'all';
+  	      
+  	      // Validate this model from ClinicView
+  	      if ((!this.model.validate()) || speciesError || clinicError) 
+  	    	  return false;
+  	      else
+  	    	  return true;
+  	    },
+
+  	    /** Array of clinic names used in form autocompletion.*/
+  	    values: [],
+  	    
+  	    /**
+  	     * 	Get the clinic object that corresponds to the input argument.
+  	     * 	@param {string} value - name of a clinic 
+  	     */
+  	    getClinicFromValues: function(value) {
+  	      var ret = null;
+  	      this.clinics.models.forEach(function(clinic) {
+  	        if (clinic.get('name') == value) {
+  	          ret = clinic;
+  	        }
+  	      });
+
+  	      return ret;
+  	    },
+
+  	    /**
+  	     * 	Callback on fetching all clinics to populate the autocomplete list.
+  	     */
+  	    onClinicsFetched: function() {
+  	      this.values = [];
+  	      var self = this;
+  	      this.clinics.models.forEach(function(clinic) {
+  	        self.values.push(clinic.get('name'));
+  	        
+  	        // Set the home clinic field in the modal window to be this clinic by default
+  	        // Hack for finding this clinic's name
+  	        if (clinic.get('email') == homeClinic) {
+  	        	homeClinic = clinic.get('name');
+  	        	$('#home-clinic').val(homeClinic);
+  	        }
+  	      });
+  	  
+  	      if (this.values != null || undefined) {
+  	        $(this.el).find('#home-clinic').autocomplete({
+  	          source: self.values,
+  	          minLength: 3
+  	        });       
+  	        $('html').find('.ui-autocomplete').css('z-index', 999999);
+  	      }    
+  	    },
+  	    
+
+  	    /** Array of clinic names used in form autocompletion.*/
+  	    speciesValues: [],
+  	    
+  	    /** 
+  	     * Search collection of species for one with name equal to given value.
+  	     * @param {string} value - The string value to be matched against species
+  	     * names.
+  	     * @return {Species} The first species object with name matching given value,
+  	     * null if no such species exists in the collection.
+  	     */
+  	     getSpeciesFromValues: function(value) {
+  	      var ret = null;
+  	      this.species.models.forEach(function(species) {
+  	        if (species.get('name') == value) ret = species;
+  	      });
+  	      return ret;
+  	     },
+
+  	    /**
+  	     * Populate the species array.
+  	     */
+  	    onSpeciesFetched: function() {
+  	      this.speciesValues = [];
+  	      var self = this;
+  	      this.species.models.forEach(function(species) {
+  	        self.speciesValues.push(species.get('name'));
+  	      });
+
+  	      if (this.speciesValues != null || undefined) {
+  	        $(this.el).find('#species').autocomplete({
+  	          source: self.speciesValues,
+  	        });       
+  	        $('html').find('.ui-autocomplete').css('z-index', 999999);
+  	      }    
+
+  	    },
+
+
+  	    /** Callback to trigger of 'error' event by model. */
+  	    onError: function(err) {
+  	      // Check for individual errors when filling out the fields, 
+  	      // or all fields when submitting
+  	      if ((err.name != null) &amp;&amp; (this.currentCheck == 'name' || 
+  	    		  this.currentCheck == 'all')) {
+  	        this.addWarning(
+  	          $(this.el).find('#name').closest('.form-group'), 
+  	          err.name
+  	        );
+  	      }
+
+  	      if ((err.dob != null) &amp;&amp; (this.currentCheck == 'dob' || 
+  	    		  this.currentCheck == 'all')) {
+  	        this.addWarning(
+  	          $(this.el).find('#dob').closest('.form-group'), 
+  	          err.dob
+  	        );
+  	      }
+
+  	      if ((err.sex != null) &amp;&amp; (this.currentCheck == 'sex' || 
+  	    		  this.currentCheck == 'all')) {
+  	        this.addWarning(
+  	          $(this.el).find('#sex').closest('.form-group'), 
+  	          err.sex
+  	        );
+  	      }
+  	    },
+
+  	    /**
+  	     * Callback on creating a new pet profile. Clear this pet from Backbone
+  	     * so that when the user searches for this owner, the data will not be
+  	     * from the Backbone store. Otherwise, achievements will not be displayed.
+  	     */
+  	    onUpload: function() {
+
+  	    	var message = "&lt;div>A pet profile for " + this.model.get('name') +
+  	    		" has been created successfully!&lt;/div>";
+  	    	$('#create-owner-success').append(message);
+  	    	
+  	    	Backbone.Relational.store.reset();
+  	    },
+  	    
+  	    /**
+  	     * Callback on click of close button on modal window associated
+  	     * with this View.
+  	     * Dismisses the modal window associated with this View.
+  	     */
+  	    hide: function() {
+  	    	
+  	    	// Dismiss modal window.
+  	    	$('#create-owner-window').modal('hide');
+  	    	router.navigate(window.location.base, {trigger: false, replace: true});
+  	    }
+  	
+  });
+
+  return ClinicCreatePetView;
+
+});
+
+
+
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -47,45 +47,123 @@
 
         /** The collection this view listen to. */
         this.collection = new InterestList();
-        this.collection.bind('interestsFetched', this.onListChange, this);
+        this.collection.bind('interestsFetched', this.onListFetch, this);
         this.collection.fetch();
 
-        // Listen for the event that an interest in the list actually gets 
-        // clicked.
-        this.on('interestClick', this.onInterestClick);
-        this.listenTo(this.collection, 'add', this.render);
-        this.listenTo(this.collection, 'remove', this.render);
+        /** Collection of  categories to which interests can be associated. */
+        this.categories = options.categories;
+        this.listenTo(this.categories, 'add', this.renderCategories);
+        this.listenTo(this.categories, 'remove', this.renderCategories);
 
+        this.delegateListeners();
       },
 
       /** DOM element this View will render its template into. */
       el: $('&lt;div>').addClass('interests'),
 
       /** 
-       * Render View template into this.el.  For each Interest in the collection
-       * that this instance of InterestListView listens to, we append the result 
-       * of rendering an instance of 
-       * InterestListElementView.
-       */
+       * Render View template into this.el. */
       render: function() {
-        var tpl = _.template(interestListTpl, {});
+        this.unbind();
+        this.undelegateEvents();
+        this.$el.off();
+
+        var tpl = _.template(interestListTpl, {categories: this.categories.models});
+        
         $(this.el).html(tpl);
 
-        var listDiv = $(this.el).find('.list-div');
-        var self = this;
+        if (this.views == null || undefined) return;
 
-        this.collection.each(function(interest) {
-          var elemView = new InterestListElementView({
-            parent: self,
-            model: interest
-          });
-          elemView.render();
-          $(listDiv).append(elemView.el);
+        this.renderInterests();
+        this.delegateEvents();
+        this.delegateListeners();
+        return this;
+      },
+
+      /** Re-render list of interests. */
+      renderInterests: function() {
+        var listDiv = $(this.el).find('.list-div');
+
+        $(listDiv).html('');
+
+        var container = document.createDocumentFragment();
+
+        this.views.forEach(function(ilev) {
+          if ((ilev.filters.descriptionFilter == true ) &amp;&amp; 
+              (ilev.filters.categoryFilter == true)   ) {
+            container.appendChild(ilev.render().el);
+          }
+        });
+        $(listDiv).append(container);
+        return this;
+      },
+
+      /** Update category values in select element of template. */
+      renderCategories: function() {
+        var self = this;
+        var categoriesEl = $(self.el).find('select');
+        categoriesEl.html('');
+        categoriesEl.append($('&lt;option>').html('-- No Filters --'));
+        categoriesEl.append($('&lt;option>').html('-- No Category --'));
+        this.categories.models.forEach(function(category) {
+          // Do not render category with no description.
+          if (category.get('description') == ""     ||
+              category.get('description') == null   ||
+              category.get('description') == undefined) return;          
+
+          $(categoriesEl)
+            .append($('&lt;option>')
+            .html(category.get('description')));
         });
       },
 
       /** Defines event listeners and callbacks. */
       events: {
+        'keyup #filter-by-description': 'filterByDescription',
+        'change select':                'filterByCategory'
+      },
+
+      delegateListeners: function() {
+        // Listen for the event that an interest in the list actually gets 
+        // clicked.
+        this.on('interestClick', this.onInterestClick);
+        this.listenTo(this.collection, 'remove', this.removeOne);
+        this.listenTo(this.collection, 'change', this.onChange);
+        if (this.views != null || undefined) {
+          this.listenTo(this.collection, 'add', this.addOne);
+        }
+      },
+
+      /** */
+      sortViews: function() {
+        if (this.views == null || undefined) return null;
+
+        this.views.sort(function(a, b) {
+          var a = a.model;
+          var b = b.model;
+
+          var aCategory = a.get('category');
+          var bCategory = b.get('category');
+
+          if (aCategory == undefined || null) return -1;
+          else if (bCategory == undefined || null) return 1;
+
+          if (a.get('category').get('description') &lt;
+              b.get('category').get('description')) {
+            return -1;
+          } else if (a.get('category').get('description') >
+              b.get('category').get('description')) {
+            return 1;
+          } else {
+            if (a.get('description') &lt; b.get('description')) {
+              return -1;
+            } else if (a.get('description') > b.get('description')) {
+              return 1;
+            } else {
+              return 0;
+            }
+          }
+        });
       },
 
 // Event callback functions ---------------------------------------------------/
@@ -95,22 +173,136 @@
        * parent view for rendering into PreviewInterest area.
        */
       onInterestClick: function(e) {
-
         // Remove clicked attribute from list elements, add clicked class to
         // event target
-        $(this.el).find('.list-elem').removeClass('clicked');
-        $(e.el).addClass('clicked');
+        $(this.el).find('.interest-list-element').removeClass('clicked');
+        $(e.el).find('.interest-list-element').addClass('clicked');
 
         // Trigger event on parent view.
         this.parent.trigger('interestClick', e);
       },
 
-      /** Callback to collection 'change' event. Re-renders the View.*/
-      onListChange: function(e) {
-        console.log('list changed');
-        console.log(e);
-        this.render();
+      /** Filter interests displayed in the clinic list based on the value of
+       * the category selected in the interest list header. */
+      filterByCategory: function() {
+        // Get selected value.
+        var category = $(this.el).find('option:selected').html();
+        if (category == '-- No Filters --' || category == undefined || 
+          category == null) {
+          this.views.forEach(function(ilev) {
+            ilev.filters.categoryFilter = true;
+          });
+        } else if (category == '-- No Category --') {
+          this.views.forEach(function(ilev) {
+            if (ilev.model.get('category') == null) {
+              ilev.filters.categoryFilter = true;
+            } else {
+              ilev.filters.categoryFilter = false;
+            }
+          });
+        } else {
+          this.views.forEach(function(ilev) {
+            if (ilev.model.get('category') != null    &amp;&amp;
+               ilev.model.get('category').get('description') == category) {
+              ilev.filters.categoryFilter = true;
+            } else {
+              ilev.filters.categoryFilter = false;
+            }
+          });
+        }
+        this.renderInterests();
+      },
+
+      /** Filter interests displayed in the interest list based on the value of
+       * the search input box. */
+      filterByDescription: function(e) {
+        var query = 
+          (e != undefined &amp;&amp; e != null) ? e.currentTarget.value.toLowerCase()
+            : $(this.el).find('#filter-by-description').val().toLowerCase();
+        var self = this;
+
+        if (query == "") {
+          // If query is empty string, display all eligible views.
+          this.views.forEach(function(ilev) {
+            ilev.filters.descriptionFilter = true;
+          });
+        } else {
+          this.views.forEach(function(ilev) {
+            if (self.match(query, ilev.model.get('description').toLowerCase())) {
+              ilev.filters.descriptionFilter = true;
+            } else {
+              ilev.filters.descriptionFilter = false;
+            }
+          });
+        }
+        this.renderInterests();
+      },
+
+    /** 
+     * Build and cache regexp used in filtering. Cache hash is the regular
+     * expression built from the passed pattern.
+     * @param {string} pattern - The string from which to build a matching
+     * pattern. 
+     * @returns {regexp} A regular expression 
+     */
+    cache: _.memoize(function(pattern) {
+        return new RegExp(pattern.split('').reduce(function(a, b) {
+          return a+'[^'+b+']*'+b;
+        }))
+      }),
+
+    /** 
+     * Perform test for fuzzy match of str against pattern.
+     * @param {string} str - The string to be matched.
+     * @param {string} pattern - The pattern against which to match str.
+     * @return {boolean} true if str is fuzzy match of pattern, false otherwise.
+     */
+    match: function(pattern, str) {
+      if (pattern == "") return;
+      return this.cache(pattern).test(str);
+    },
+
+    /** Callback to collection 'change' event. Re-renders the View.*/
+    onListFetch: function(e) {
+
+      var self = this;
+      this.views = [];
+      this.collection.forEach(function(interest) {
+        var ilev = new InterestListElementView({model: interest, parent: self});
+        ilev.filters = {descriptionFilter: true, categoryFilter: true};
+        self.views.push(ilev);
+      });
+      this.sortViews();
+      this.render();
+    },
+
+    onChange: function() {
+      this.sortViews();
+      this.filterByCategory();
+      this.filterByDescription();
+    },
+
+    addOne: function(newModel) {
+      console.log('add one firigin...');
+      var ilev = new InterestListElementView({model: newModel, parent: this});
+      ilev.filters = {descriptionFilter: true, categoryFilter: true};
+      this.views.push(ilev);
+      this.sortViews();
+      this.filterByDescription();
+      this.filterByCategory();
+      this.renderInterests();
+    },
+
+    removeOne: function(model) {
+      var id = model.get('id');
+      for (var i = 0; i &lt; this.views.length; i ++) {
+        if (this.views[i].model.get('id') == id) {
+          this.views.splice(i, 1);
+        }
       }
+      this.renderInterests();
+
+    }
 
     });
   
@@ -125,13 +317,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PetListView.html">views/owner/PetListView</a></li><li><a href="AddInterestView.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addWarning">addWarning</a></li><li><a href="global.html#destroyPopover">destroyPopover</a></li><li><a href="global.html#getFormGroupById">getFormGroupById</a></li><li><a href="global.html#getOwner">getOwner</a></li><li><a href="global.html#getValById">getValById</a></li><li><a href="global.html#onFileSelect">onFileSelect</a></li><li><a href="global.html#onInterestUpload">onInterestUpload</a></li><li><a href="global.html#onModelError">onModelError</a></li><li><a href="global.html#onPictureDrag">onPictureDrag</a></li><li><a href="global.html#onPictureSelect">onPictureSelect</a></li><li><a href="global.html#removeFeedback">removeFeedback</a></li><li><a href="global.html#showManagePictures">showManagePictures</a></li><li><a href="global.html#showZoomPicture">showZoomPicture</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="AcheivementSetList.html">models/AcheivementSetList</a></li><li><a href="Achievement.html">models/Achievement</a></li><li><a href="AchievementList.html">models/AchievementList</a></li><li><a href="AchievementRecord.html">models/AchievementRecord</a></li><li><a href="AchievementRecordList.html">models/AchievementRecordList</a></li><li><a href="AchievementSet.html">models/AchievementSet</a></li><li><a href="CategoryList.html">models/CategoryList</a></li><li><a href="Clinic.html">models/Clinic</a></li><li><a href="ClinicList.html">models/ClinicList</a></li><li><a href="Interest.html">models/Interest</a></li><li><a href="InterestCategory.html">models/InterestCategory</a></li><li><a href="InterestList.html">models/InterestList</a></li><li><a href="InterestRecord.html">models/InterestRecord</a></li><li><a href="InterestRecordList.html">models/InterestRecordList</a></li><li><a href="Login.html">models/Login</a></li><li><a href="Owner.html">models/Owner</a></li><li><a href="OwnerSignup.html">models/OwnerSignup</a></li><li><a href="Pet.html">models/Pet</a></li><li><a href="PetList.html">models/PetList</a></li><li><a href="Picture.html">models/Picture</a></li><li><a href="PictureList.html">models/PictureList</a></li><li><a href="Species.html">models/Species</a></li><li><a href="SpeciesList.html">models/SpeciesList</a></li><li><a href="AdminRouter.html">routers/AdminRouter</a></li><li><a href="ClinicRouter.html">routes/ClinicRouter</a></li><li><a href="OwnerRoute.html">routes/OwnerRoute</a></li><li><a href="DeleteAchievementModalView.html">view/admin/DeleteAchievementModalView</a></li><li><a href="AchievementEditView.html">views/admin/AchievementEditView</a></li><li><a href="AchievementSetDetailsView.html">views/admin/AchievementSetDetailsView</a></li><li><a href="AchievementSetEditView.html">views/admin/AchievementSetEditView</a></li><li><a href="AchievementSetListView.html">views/admin/AchievementSetListView</a></li><li><a href="AddAchievementView.html">views/admin/AddAchievementView</a></li><li><a href="AddClinicView.html">views/admin/AddClinicView</a></li><li><a href="AddInterestView.html">views/admin/AddInterestView</a></li><li><a href="AdminConsoleView.html">views/admin/AdminConsoleView</a></li><li><a href="AdminLoginView.html">views/admin/AdminLoginView</a></li><li><a href="CategoryListElementView.html">views/admin/CategoryListElementView</a></li><li><a href="CategoryListView.html">views/admin/CategoryListView</a></li><li><a href="ClinicDetailsView.html">views/admin/ClinicDetailsView</a></li><li><a href="ClinicListElementView.html">views/admin/ClinicListElementView</a></li><li><a href="ClinicListView.html">views/admin/ClinicListView</a></li><li><a href="DeleteInterestModalView.html">views/admin/DeleteInterestModalView</a></li><li><a href="EditCLinicView.html">views/admin/EditCLinicView</a></li><li><a href="InterestListElementView.html">views/admin/InterestListElementView</a></li><li><a href="InterestListView.html">views/admin/InterestListView</a></li><li><a href="ManageAchievementsView.html">views/admin/ManageAchievementsView</a></li><li><a href="ManageCategoriesView.html">views/admin/ManageCategoriesView</a></li><li><a href="ManageInterestsView.html">views/admin/ManageInterestsView</a></li><li><a href="PetListElementView.html">views/admin/PetListElementView</a></li><li><a href="PetListView.html">views/admin/PetListView</a></li><li><a href="PreviewInterestView.html">views/admin/PreviewInterestView</a></li><li><a href="ClinicCreatePetView.html">views/clinic/ClinicCreatePetView</a></li><li><a href="ClinicOwnerPetProfileView.html">views/clinic/ClinicOwnerPetProfileView</a></li><li><a href="ClinicView.html">views/clinic/ClinicView</a></li><li><a href="EditCLinicView_.html">views/clinic/EditCLinicView</a></li><li><a href="LoginView.html">views/login/LoginView</a></li><li><a href="AddPetModalView.html">views/owner/AddPetModalView</a></li><li><a href="OwnerSidebarView.html">views/owner/OwnerSidebarView</a></li><li><a href="OwnerView.html">views/owner/OwnerView</a></li><li><a href="PACElementView.html">views/owner/PACElementView</a></li><li><a href="PetAchievementCompletionView.html">views/owner/PetAchievementCompletionView</a></li><li><a href="PetListElementView_.html">views/owner/PetListElementView</a></li><li><a href="PetListView_.html">views/owner/PetListView</a></li><li><a href="UploadPictureView.html">views/owner/UploadPictureView</a></li><li><a href="PasswordResetView.html">views/password_reset/PasswordResetView</a></li><li><a href="AchievementListView.html">views/pet/AchievementListView</a></li><li><a href="AchievementView.html">views/pet/AchievementView</a></li><li><a href="AddInterestView_.html">views/pet/AddInterestView</a></li><li><a href="CarouselPetView.html">views/pet/CarouselPetView</a></li><li><a href="DeletePetView.html">views/pet/DeletePetView</a></li><li><a href="EditPetView.html">views/pet/EditPetView</a></li><li><a href="GridPictureView.html">views/pet/GridPictureView</a></li><li><a href="InterestView.html">views/pet/InterestView</a></li><li><a href="ManagePicturesView.html">views/pet/ManagePicturesView</a></li><li><a href="PetInterestList.html">views/pet/PetInterestList</a></li><li><a href="PetProfieView.html">views/pet/PetProfieView</a></li><li><a href="PetSidebarView.html">views/pet/PetSidebarView</a></li><li><a href="PetSocialInfoView.html">views/pet/PetSocialInfoView</a></li><li><a href="UploadPictureModalView.html">views/pet/UploadPictureModalView</a></li><li><a href="ZoomPictureView.html">views/pet/ZoomPictureView</a></li><li><a href="SignupView.html">views/signup/SignupView</a></li></ul><h3>Global</h3><ul><li><a href="global.html#className">className</a></li><li><a href="global.html#deleteAchievementSetView">deleteAchievementSetView</a></li><li><a href="global.html#events">events</a></li><li><a href="global.html#onDeleteSet">onDeleteSet</a></li><li><a href="global.html#onSetClick">onSetClick</a></li><li><a href="global.html#parent">parent</a></li><li><a href="global.html#render">render</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Mar 14 2014 17:03:45 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Fri Apr 04 2014 11:44:41 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>
